@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +13,12 @@ const AdminLoginForm: React.FC = () => {
   const [password, setPassword] = useState("pepito1234");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { signInWithEmail } = useAuth();
+  const { signInWithEmail, currentUser, isAdmin } = useAuth();
+
+  useEffect(() => {
+    // Limpiar cualquier error previo
+    setError(null);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +30,7 @@ const AdminLoginForm: React.FC = () => {
       await signInWithEmail(email, password);
     } catch (err: any) {
       console.error("Error al iniciar sesión:", err);
-      setError("Correo o contraseña incorrectos. Por favor, inténtalo de nuevo.");
+      setError("Credenciales incorrectas. Por favor, verifica tu correo y contraseña.");
     } finally {
       setLoading(false);
     }

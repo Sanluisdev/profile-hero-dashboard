@@ -22,6 +22,7 @@ interface AuthContextType {
 }
 
 const ADMIN_EMAIL = "jmesparre@gmail.com";
+const ADMIN_PASSWORD = "pepito1234";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -34,6 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log("Usuario actual:", user?.email);
       setCurrentUser(user);
       setIsAdmin(user?.email === ADMIN_EMAIL);
       setLoading(false);
@@ -42,28 +44,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return unsubscribe;
   }, []);
 
-  // Esta función es para crear el usuario admin si no existe (solo para desarrollo)
+  // Esta función es para crear el usuario admin si no existe
   const ensureAdminExists = async () => {
     try {
-      await signInWithEmailAndPassword(auth, ADMIN_EMAIL, "pepito1234");
-      console.log("Admin ya existe, inicio de sesión exitoso");
-      await firebaseSignOut(auth); // Cerramos sesión después de verificar
-    } catch (err: any) {
-      if (err.code === 'auth/user-not-found') {
-        try {
-          await createUserWithEmailAndPassword(auth, ADMIN_EMAIL, "pepito1234");
-          console.log("Usuario admin creado exitosamente");
-          await firebaseSignOut(auth); // Cerramos sesión después de crear
-        } catch (createErr) {
-          console.error("Error al crear usuario admin:", createErr);
+      console.log("Verificando si existe el usuario admin:", ADMIN_EMAIL);
+      try {
+        // Intento de creación de usuario admin
+        const userCredential = await createUserWithEmailAndPassword(auth, ADMIN_EMAIL, ADMIN_PASSWORD);
+        console.log("Usuario admin creado exitosamente:", userCredential.user.email);
+        await firebaseSignOut(auth);
+      } catch (createErr: any) {
+        console.log("Error al crear usuario admin:", createErr.code);
+        if (createErr.code === 'auth/email-already-in-use') {
+          console.log("El usuario admin ya existe");
+        } else {
+          console.error("Error desconocido al crear usuario admin:", createErr);
         }
-      } else {
-        console.error("Error al verificar usuario admin:", err);
       }
+    } catch (err) {
+      console.error("Error general al verificar/crear usuario admin:", err);
     }
   };
 
-  // Descomentamos esta línea para crear el usuario admin automáticamente
+  // Ejecutamos la función para crear el usuario admin cuando se carga la aplicación
   useEffect(() => {
     ensureAdminExists();
   }, []);
@@ -88,6 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signInWithEmail = async (email: string, password: string) => {
     try {
+      console.log("Intentando iniciar sesión con email:", email);
       const result = await signInWithEmailAndPassword(auth, email, password);
       toast({
         title: "Inicio de sesión exitoso",
@@ -99,14 +103,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         navigate("/dashboard");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error al iniciar sesión con correo:", error);
+      
+      // Mensaje de error más descriptivo
+      let errorMsg = "Correo o contraseña incorrectos.";
+      if (error.code === 'auth/invalid-credential') {
+        errorMsg = "Credenciales inválidas. Verifica tu correo y contraseña.";
+      } else if (error.code === 'auth/user-not-found') {
+        errorMsg = "No existe un usuario con ese correo electrónico.";
+      }
+      
       toast({
         title: "Error de inicio de sesión",
-        description: "Correo o contraseña incorrectos.",
+        description: errorMsg,
         variant: "destructive",
       });
-      throw error; // Re-lanzamos el error para que pueda ser capturado por el componente
+      throw error;
     }
   };
 
