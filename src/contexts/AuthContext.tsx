@@ -4,7 +4,8 @@ import {
   User, 
   signInWithPopup, 
   signOut as firebaseSignOut, 
-  onAuthStateChanged 
+  onAuthStateChanged,
+  signInWithEmailAndPassword, 
 } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 import { useNavigate } from "react-router-dom";
@@ -14,20 +15,26 @@ interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  isAdmin: boolean;
 }
+
+const ADMIN_EMAIL = "jmesparre@gmail.com";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
+      setIsAdmin(user?.email === ADMIN_EMAIL);
       setLoading(false);
     });
 
@@ -47,6 +54,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toast({
         title: "Error de inicio de sesión",
         description: "No se pudo iniciar sesión con Google. Intente de nuevo.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const signInWithEmail = async (email: string, password: string) => {
+    try {
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      toast({
+        title: "Inicio de sesión exitoso",
+        description: `Bienvenido, ${result.user.email}!`,
+      });
+      
+      if (email === ADMIN_EMAIL) {
+        navigate("/admin");
+      } else {
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      console.error("Error al iniciar sesión con correo:", error);
+      toast({
+        title: "Error de inicio de sesión",
+        description: "Correo o contraseña incorrectos.",
         variant: "destructive",
       });
     }
@@ -74,7 +104,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     currentUser,
     loading,
     signInWithGoogle,
+    signInWithEmail,
     signOut,
+    isAdmin,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
