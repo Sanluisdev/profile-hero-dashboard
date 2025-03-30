@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const AdminLoginForm: React.FC = () => {
   const [email, setEmail] = useState("jmesparre@gmail.com");
-  const [password, setPassword] = useState("");
+  const [password, setPassword] = useState("pepito1234");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { signInWithEmail } = useAuth();
@@ -21,6 +21,7 @@ const AdminLoginForm: React.FC = () => {
     setError(null);
     
     try {
+      console.log("Intentando iniciar sesión con:", email, password);
       await signInWithEmail(email, password);
     } catch (err: any) {
       console.error("Error al iniciar sesión:", err);

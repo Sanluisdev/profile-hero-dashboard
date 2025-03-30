@@ -1,20 +1,18 @@
 
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { getAnalytics } from "firebase/analytics";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getAnalytics } from "firebase/analytics";
 
-// Tu configuración de Firebase
-// Normalmente esto debería ser un secreto, pero Firebase permite que estas claves sean públicas
-// ya que se restringen con reglas de seguridad en el backend
+// Configuración de Firebase
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
+  apiKey: "AIzaSyBK84VweShaBsOf4KgF30Iy5Z1GaCFQ3Bg",
+  authDomain: "crm-med-8b83e.firebaseapp.com",
+  projectId: "crm-med-8b83e",
+  storageBucket: "crm-med-8b83e.firebasestorage.app",
+  messagingSenderId: "963483880309",
+  appId: "1:963483880309:web:35acf1ca201b662fffa13c",
+  measurementId: "G-VS9YT01FNT"
 };
 
 // Inicializar Firebase

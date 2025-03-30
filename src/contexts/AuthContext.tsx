@@ -47,11 +47,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await signInWithEmailAndPassword(auth, ADMIN_EMAIL, "pepito1234");
       console.log("Admin ya existe, inicio de sesión exitoso");
+      await firebaseSignOut(auth); // Cerramos sesión después de verificar
     } catch (err: any) {
       if (err.code === 'auth/user-not-found') {
         try {
           await createUserWithEmailAndPassword(auth, ADMIN_EMAIL, "pepito1234");
           console.log("Usuario admin creado exitosamente");
+          await firebaseSignOut(auth); // Cerramos sesión después de crear
         } catch (createErr) {
           console.error("Error al crear usuario admin:", createErr);
         }
@@ -61,10 +63,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Descomentar esta línea para crear el usuario admin (solo en desarrollo)
-  // useEffect(() => {
-  //   ensureAdminExists();
-  // }, []);
+  // Descomentamos esta línea para crear el usuario admin automáticamente
+  useEffect(() => {
+    ensureAdminExists();
+  }, []);
 
   const signInWithGoogle = async () => {
     try {

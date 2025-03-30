@@ -19,6 +19,8 @@ const ProtectedAdminRoute: React.FC<ProtectedAdminRouteProps> = ({ children }) =
     );
   }
 
+  console.log("Protected Admin Route:", { currentUser, isAdmin });
+
   if (!currentUser || !isAdmin) {
     return <Navigate to="/admin-login" />;
   }
