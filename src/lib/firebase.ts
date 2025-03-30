@@ -2,20 +2,24 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.5.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.5.0/firebase-analytics.js";
 // Tu configuración de Firebase
 // Normalmente esto debería ser un secreto, pero Firebase permite que estas claves sean públicas
 // ya que se restringen con reglas de seguridad en el backend
-const firebaseConfig = {
-  apiKey: "AIzaSyBq0K6V-XlvFUTdHsjC6GV2Av1snnM2z0s",
-  authDomain: "lovable-landing-demo.firebaseapp.com",
-  projectId: "lovable-landing-demo",
-  storageBucket: "lovable-landing-demo.appspot.com",
-  messagingSenderId: "234029048302",
-  appId: "1:234029048302:web:f3a38fe4ef06ef8e3adb5a"
-};
+  const firebaseConfig = {
+    apiKey: "AIzaSyBK84VweShaBsOf4KgF30Iy5Z1GaCFQ3Bg",
+    authDomain: "crm-med-8b83e.firebaseapp.com",
+    projectId: "crm-med-8b83e",
+    storageBucket: "crm-med-8b83e.firebasestorage.app",
+    messagingSenderId: "963483880309",
+    appId: "1:963483880309:web:35acf1ca201b662fffa13c",
+    measurementId: "G-VS9YT01FNT"
+  };
 
 // Inicializar Firebase
 const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
