@@ -14,43 +14,6 @@ Simply visit the [Lovable Project](https://lovable.dev/projects/3ac9cdd1-998f-41
 
 Changes made via Lovable will be committed automatically to this repo.
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
 
 This project is built with .
 
@@ -63,7 +26,55 @@ This project is built with .
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/3ac9cdd1-998f-41dc-aa76-e8243c1fb6ff) and click on Share -> Publish.
+Para que puedas configurar correctamente el proyecto en tu propio GitHub y Firebase, necesitarás cambiar algunas configuraciones clave:
 
-## I want to use a custom domain - is that possible?
+En src/lib/firebase.ts: Debes reemplazar la configuración actual de Firebase con tu propia configuración. Ve a Firebase Console, crea un nuevo proyecto y sigue estos pasos:
+Ve a Configuración del Proyecto
+Selecciona "Agregar aplicación" y elige "Web"
+Registra tu aplicación
+Copia la configuración de Firebase que te proporciona (se verá como un objeto similar al actual)
+Ejemplo de cómo debería verse:
 
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+
+const firebaseConfig = {
+  apiKey: "TU_API_KEY",
+  authDomain: "TU_DOMINIO.firebaseapp.com",
+  projectId: "TU_ID_DE_PROYECTO",
+  storageBucket: "TU_BUCKET_DE_STORAGE",
+  messagingSenderId: "TU_SENDER_ID",
+  appId: "TU_APP_ID"
+};
+En GitHub:
+Clona el repositorio
+Crea un archivo .env en la raíz del proyecto para guardar tus credenciales de Firebase de forma segura
+Añade .env a tu .gitignore para no exponer credenciales sensibles
+Configuración recomendada en .env:
+
+VITE_FIREBASE_API_KEY=tu_api_key
+VITE_FIREBASE_AUTH_DOMAIN=tu_dominio.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=tu_project_id
+VITE_FIREBASE_STORAGE_BUCKET=tu_storage_bucket
+VITE_FIREBASE_MESSAGING_SENDER_ID=tu_sender_id
+VITE_FIREBASE_APP_ID=tu_app_id
+Luego actualiza src/lib/firebase.ts para usar variables de entorno:
+
+
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  // ... resto de configuraciones
+};
+Habilita la Autenticación de Google en Firebase:
+En la consola de Firebase
+Ve a "Authentication"
+Selecciona "Sign-in method"
+Habilita el proveedor de Google
+Instala dependencias:
+
+npm install
+Ejecuta el proyecto:
+
+npm run dev
+¿Necesitas que te explique alguno de estos pasos con más detalle?
+
+
