@@ -11,7 +11,12 @@ const ProtectedAdminRoute: React.FC<ProtectedAdminRouteProps> = ({ children }) =
   const { currentUser, loading, isAdmin } = useAuth();
 
   if (loading) {
-    return <div className="flex justify-center items-center h-screen">Cargando...</div>;
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+        <span className="ml-3">Cargando...</span>
+      </div>
+    );
   }
 
   if (!currentUser || !isAdmin) {

@@ -6,6 +6,7 @@ import {
   signOut as firebaseSignOut, 
   onAuthStateChanged,
   signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword
 } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 import { useNavigate } from "react-router-dom";
@@ -40,6 +41,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return unsubscribe;
   }, []);
+
+  // Esta función es para crear el usuario admin si no existe (solo para desarrollo)
+  const ensureAdminExists = async () => {
+    try {
+      await signInWithEmailAndPassword(auth, ADMIN_EMAIL, "pepito1234");
+      console.log("Admin ya existe, inicio de sesión exitoso");
+    } catch (err: any) {
+      if (err.code === 'auth/user-not-found') {
+        try {
+          await createUserWithEmailAndPassword(auth, ADMIN_EMAIL, "pepito1234");
+          console.log("Usuario admin creado exitosamente");
+        } catch (createErr) {
+          console.error("Error al crear usuario admin:", createErr);
+        }
+      } else {
+        console.error("Error al verificar usuario admin:", err);
+      }
+    }
+  };
+
+  // Descomentar esta línea para crear el usuario admin (solo en desarrollo)
+  // useEffect(() => {
+  //   ensureAdminExists();
+  // }, []);
 
   const signInWithGoogle = async () => {
     try {
@@ -79,6 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: "Correo o contraseña incorrectos.",
         variant: "destructive",
       });
+      throw error; // Re-lanzamos el error para que pueda ser capturado por el componente
     }
   };
 

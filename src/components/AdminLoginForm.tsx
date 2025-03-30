@@ -6,21 +6,25 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { Lock, Mail } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const AdminLoginForm: React.FC = () => {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState("jmesparre@gmail.com");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { signInWithEmail } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     
     try {
       await signInWithEmail(email, password);
-    } catch (error) {
-      console.error("Error al iniciar sesión:", error);
+    } catch (err: any) {
+      console.error("Error al iniciar sesión:", err);
+      setError("Correo o contraseña incorrectos. Por favor, inténtalo de nuevo.");
     } finally {
       setLoading(false);
     }
@@ -35,6 +39,13 @@ const AdminLoginForm: React.FC = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>
+              {error}
+            </AlertDescription>
+          </Alert>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
