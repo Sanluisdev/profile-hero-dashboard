@@ -1,9 +1,11 @@
 
 import React, { useEffect, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface FirebaseUser {
   uid: string;
@@ -29,8 +31,9 @@ const UserTable = () => {
         console.log("Consultando usuarios en Firestore...");
         const usersCollection = collection(db, "users");
         
-        // Ordenamos por fecha de creación descendente (lo más nuevo primero)
-        const usersQuery = query(usersCollection, orderBy("createdAt", "desc"));
+        // Creamos una consulta simple sin orderBy para evitar problemas de índices
+        const usersQuery = query(usersCollection, limit(50));
+        
         const usersSnapshot = await getDocs(usersQuery);
         
         if (usersSnapshot.empty) {
@@ -63,7 +66,12 @@ const UserTable = () => {
       }
     };
 
-    fetchUsers();
+    // Añadimos un pequeño retraso para asegurarnos de que Firebase esté completamente inicializado
+    const timer = setTimeout(() => {
+      fetchUsers();
+    }, 1000);
+
+    return () => clearTimeout(timer);
   }, []);
 
   if (loading) {
@@ -77,10 +85,10 @@ const UserTable = () => {
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative my-4">
-        <strong className="font-bold">Error: </strong>
-        <span className="block sm:inline">{error}</span>
-      </div>
+      <Alert variant="destructive" className="my-4">
+        <AlertCircle className="h-4 w-4 mr-2" />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
     );
   }
 
@@ -101,7 +109,13 @@ const UserTable = () => {
           {users.length === 0 ? (
             <TableRow>
               <TableCell colSpan={6} className="text-center py-8">
-                No hay usuarios registrados
+                <div className="flex flex-col items-center justify-center">
+                  <AlertCircle className="h-8 w-8 text-amber-500 mb-2" />
+                  <p>No hay usuarios registrados en la colección "users"</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Es posible que necesites crear usuarios o verificar los permisos de Firestore
+                  </p>
+                </div>
               </TableCell>
             </TableRow>
           ) : (
@@ -109,28 +123,26 @@ const UserTable = () => {
               <TableRow key={user.uid}>
                 <TableCell className="font-medium">
                   <div className="flex items-center space-x-2">
-                    {user.photoURL ? (
-                      <img
-                        src={user.photoURL}
-                        alt="Profile"
-                        className="w-8 h-8 rounded-full"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = "https://ui-avatars.com/api/?name=" + (user.displayName || "User");
-                        }}
-                      />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                        <span className="text-sm font-bold text-gray-500">
-                          {user.displayName ? user.displayName.charAt(0).toUpperCase() : "U"}
-                        </span>
-                      </div>
-                    )}
+                    <Avatar>
+                      {user.photoURL ? (
+                        <AvatarImage 
+                          src={user.photoURL} 
+                          alt={user.displayName || "Usuario"}
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                          }}
+                        />
+                      ) : null}
+                      <AvatarFallback>
+                        {user.displayName ? user.displayName.charAt(0).toUpperCase() : "U"}
+                      </AvatarFallback>
+                    </Avatar>
                     <span>{user.displayName || "Usuario sin nombre"}</span>
                   </div>
                 </TableCell>
                 <TableCell>{user.email}</TableCell>
-                <TableCell className="font-mono text-xs">{user.uid}</TableCell>
+                <TableCell className="font-mono text-xs max-w-[120px] truncate">{user.uid}</TableCell>
                 <TableCell>{user.provider || "N/A"}</TableCell>
                 <TableCell>
                   {user.createdAt ? new Date(user.createdAt).toLocaleString() : "N/A"}

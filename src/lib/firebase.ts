@@ -1,7 +1,7 @@
 
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 
 // Configuración de Firebase
@@ -29,6 +29,12 @@ const isLocalhost =
   typeof window !== 'undefined' && 
   (window.location.hostname === 'localhost' || 
    window.location.hostname === '127.0.0.1');
+
+// Si estamos en localhost, podemos usar el emulador
+if (isLocalhost) {
+  // Uncomment if you're using Firebase Emulator
+  // connectFirestoreEmulator(db, '127.0.0.1', 8080);
+}
 
 console.log("Firebase inicializado con config:", { 
   apiKey: firebaseConfig.apiKey,
