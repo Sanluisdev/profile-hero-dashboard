@@ -44,6 +44,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    console.log("Setting up auth state listener");
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       console.log("AuthState changed - Usuario actual:", user?.email);
       setCurrentUser(user);
@@ -57,6 +58,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return unsubscribe;
+  }, []);
+
+  // Restaurar la sesión de administrador si existe en sessionStorage
+  useEffect(() => {
+    const savedAdminAuth = sessionStorage.getItem('adminAuth');
+    if (savedAdminAuth) {
+      try {
+        const adminData = JSON.parse(savedAdminAuth);
+        if (adminData.isAdmin && adminData.email === ADMIN_EMAIL) {
+          console.log("Restaurando sesión de administrador");
+          const fakeAdminUser = {
+            email: ADMIN_EMAIL,
+            displayName: "Administrador",
+            uid: "admin-uid-123",
+            emailVerified: true,
+          } as User;
+          
+          setCurrentUser(fakeAdminUser);
+          setIsAdmin(true);
+        }
+      } catch (error) {
+        console.error("Error al restaurar sesión de administrador:", error);
+      }
+    }
   }, []);
 
   // Método alternativo de autenticación para el administrador
@@ -84,30 +109,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     return false;
   };
-
-  // Restaurar la sesión de administrador si existe en sessionStorage
-  useEffect(() => {
-    const savedAdminAuth = sessionStorage.getItem('adminAuth');
-    if (savedAdminAuth) {
-      try {
-        const adminData = JSON.parse(savedAdminAuth);
-        if (adminData.isAdmin && adminData.email === ADMIN_EMAIL) {
-          console.log("Restaurando sesión de administrador");
-          const fakeAdminUser = {
-            email: ADMIN_EMAIL,
-            displayName: "Administrador",
-            uid: "admin-uid-123",
-            emailVerified: true,
-          } as User;
-          
-          setCurrentUser(fakeAdminUser);
-          setIsAdmin(true);
-        }
-      } catch (error) {
-        console.error("Error al restaurar sesión de administrador:", error);
-      }
-    }
-  }, []);
 
   const signInWithGoogle = async () => {
     try {
