@@ -1,9 +1,9 @@
 
 import React, { useEffect, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { collection, getDocs } from "firebase/firestore";
-import { db, auth } from "@/lib/firebase";
-import { User } from "firebase/auth";
+import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { Loader2 } from "lucide-react";
 
 interface FirebaseUser {
   uid: string;
@@ -18,47 +18,46 @@ interface FirebaseUser {
 const UserTable = () => {
   const [users, setUsers] = useState<FirebaseUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUsers = async () => {
+      setLoading(true);
+      setError(null);
+      
       try {
-        // Como Firebase Auth no tiene una API para listar usuarios desde el cliente,
-        // vamos a obtener usuarios actualmente autenticados como ejemplo
-        // En un sistema real, necesitarías una función de Cloud Function o similar
+        console.log("Consultando usuarios en Firestore...");
+        const usersCollection = collection(db, "users");
         
-        // Por ahora, mostraremos solo el usuario actual como ejemplo
-        const currentUser = auth.currentUser;
+        // Ordenamos por fecha de creación descendente (lo más nuevo primero)
+        const usersQuery = query(usersCollection, orderBy("createdAt", "desc"));
+        const usersSnapshot = await getDocs(usersQuery);
         
-        if (currentUser) {
-          const userList: FirebaseUser[] = [{
-            uid: currentUser.uid,
-            email: currentUser.email || "No email",
-            displayName: currentUser.displayName,
-            photoURL: currentUser.photoURL,
-            createdAt: currentUser.metadata.creationTime,
-            lastLogin: currentUser.metadata.lastSignInTime,
-            provider: currentUser.providerData[0]?.providerId || "Unknown"
-          }];
+        if (usersSnapshot.empty) {
+          console.log("No se encontraron usuarios en Firestore");
+          setUsers([]);
+        } else {
+          console.log(`Se encontraron ${usersSnapshot.size} usuarios en Firestore`);
+          const usersList: FirebaseUser[] = [];
           
-          // En una aplicación real, aquí obtendrías usuarios de Firestore 
-          // donde deberías almacenarlos cuando se registran
-          try {
-            const usersSnapshot = await getDocs(collection(db, "users"));
-            usersSnapshot.forEach((doc) => {
-              const userData = doc.data() as FirebaseUser;
-              // Evitar duplicados
-              if (!userList.some(u => u.uid === userData.uid)) {
-                userList.push(userData);
-              }
+          usersSnapshot.forEach((doc) => {
+            const userData = doc.data() as FirebaseUser;
+            usersList.push({
+              uid: doc.id,
+              email: userData.email || "No email",
+              displayName: userData.displayName || null,
+              photoURL: userData.photoURL || null,
+              createdAt: userData.createdAt || null,
+              lastLogin: userData.lastLogin || null,
+              provider: userData.provider || "Email/Password"
             });
-          } catch (error) {
-            console.log("No se encontró una colección de usuarios en Firestore");
-          }
+          });
           
-          setUsers(userList);
+          setUsers(usersList);
         }
       } catch (error) {
         console.error("Error al obtener usuarios:", error);
+        setError("Error al cargar los usuarios. Por favor, intenta nuevamente.");
       } finally {
         setLoading(false);
       }
@@ -68,7 +67,21 @@ const UserTable = () => {
   }, []);
 
   if (loading) {
-    return <div className="text-center py-8">Cargando usuarios...</div>;
+    return (
+      <div className="flex justify-center items-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600 mr-2" />
+        <span>Cargando usuarios...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative my-4">
+        <strong className="font-bold">Error: </strong>
+        <span className="block sm:inline">{error}</span>
+      </div>
+    );
   }
 
   return (
@@ -119,8 +132,12 @@ const UserTable = () => {
                 <TableCell>{user.email}</TableCell>
                 <TableCell className="font-mono text-xs">{user.uid}</TableCell>
                 <TableCell>{user.provider || "N/A"}</TableCell>
-                <TableCell>{user.createdAt ? new Date(user.createdAt).toLocaleString() : "N/A"}</TableCell>
-                <TableCell>{user.lastLogin ? new Date(user.lastLogin).toLocaleString() : "N/A"}</TableCell>
+                <TableCell>
+                  {user.createdAt ? new Date(user.createdAt).toLocaleString() : "N/A"}
+                </TableCell>
+                <TableCell>
+                  {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : "N/A"}
+                </TableCell>
               </TableRow>
             ))
           )}
