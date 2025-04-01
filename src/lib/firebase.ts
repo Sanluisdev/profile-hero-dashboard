@@ -1,7 +1,7 @@
 
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
-import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
+import { getAuth, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import { getFirestore, connectFirestoreEmulator, collection, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 
 // Configuración de Firebase
@@ -43,4 +43,65 @@ console.log("Firebase inicializado con config:", {
   isLocalhost
 });
 
-export { auth, googleProvider, db };
+// Función auxiliar para crear/actualizar el documento de usuario después del registro/login
+const saveUserToFirestore = async (user) => {
+  if (!user) return;
+  
+  try {
+    // Ruta al documento del usuario utilizando su UID como ID del documento
+    const userRef = doc(db, "users", user.uid);
+    
+    // Datos que guardaremos/actualizaremos
+    const userData = {
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName || null,
+      photoURL: user.photoURL || null,
+      lastLogin: serverTimestamp(),
+      provider: user.providerData[0]?.providerId || "unknown"
+    };
+
+    // Si es un registro nuevo, añadir fecha de creación
+    if (!user.metadata?.lastSignInTime) {
+      userData.createdAt = serverTimestamp();
+    }
+    
+    // Guardar en Firestore (actualiza si existe, crea si no)
+    await setDoc(userRef, userData, { merge: true });
+    console.log("Usuario guardado en Firestore:", user.uid);
+  } catch (error) {
+    console.error("Error al guardar usuario en Firestore:", error);
+  }
+};
+
+// Versiones modificadas que guardan el usuario en Firestore
+const createUserWithEmailAndPasswordAndSave = async (email, password) => {
+  try {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    await saveUserToFirestore(userCredential.user);
+    return userCredential;
+  } catch (error) {
+    console.error("Error al crear usuario:", error);
+    throw error;
+  }
+};
+
+const signInWithEmailAndSave = async (email, password) => {
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    await saveUserToFirestore(userCredential.user);
+    return userCredential;
+  } catch (error) {
+    console.error("Error al iniciar sesión:", error);
+    throw error;
+  }
+};
+
+export { 
+  auth, 
+  googleProvider, 
+  db, 
+  saveUserToFirestore, 
+  createUserWithEmailAndPasswordAndSave, 
+  signInWithEmailAndSave 
+};

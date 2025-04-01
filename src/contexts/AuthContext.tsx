@@ -5,10 +5,14 @@ import {
   signInWithPopup, 
   signOut as firebaseSignOut, 
   onAuthStateChanged,
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword
 } from "firebase/auth";
-import { auth, googleProvider } from "@/lib/firebase";
+import { 
+  auth, 
+  googleProvider, 
+  saveUserToFirestore,
+  signInWithEmailAndSave,
+  createUserWithEmailAndPasswordAndSave 
+} from "@/lib/firebase";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -17,6 +21,7 @@ interface AuthContextType {
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   isAdmin: boolean;
 }
@@ -45,8 +50,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     console.log("Setting up auth state listener");
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       console.log("AuthState changed - Usuario actual:", user?.email);
+      
+      if (user) {
+        // Guarda información del usuario en Firestore en cada inicio de sesión
+        await saveUserToFirestore(user);
+      }
+      
       setCurrentUser(user);
       
       // Determinar si el usuario es administrador por su correo
@@ -94,6 +105,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         displayName: "Administrador",
         uid: "admin-uid-123",
         emailVerified: true,
+        providerData: [{ providerId: "manual" }],
+        metadata: {}
       } as User;
       
       setCurrentUser(fakeAdminUser);
@@ -113,6 +126,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signInWithGoogle = async () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
+      
+      // Guardar información del usuario en Firestore
+      await saveUserToFirestore(result.user);
+      
       toast({
         title: "Inicio de sesión exitoso",
         description: `Bienvenido, ${result.user.displayName}!`,
@@ -157,7 +174,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Si no es administrador o falló la autenticación manual, intentamos con Firebase
       try {
-        const result = await signInWithEmailAndPassword(auth, email, password);
+        const result = await signInWithEmailAndSave(email, password);
         toast({
           title: "Inicio de sesión exitoso",
           description: `Bienvenido, ${result.user.email}!`,
@@ -205,6 +222,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const signUp = async (email: string, password: string) => {
+    try {
+      const result = await createUserWithEmailAndPasswordAndSave(email, password);
+      
+      toast({
+        title: "Registro exitoso",
+        description: "Tu cuenta ha sido creada. ¡Bienvenido!",
+      });
+      
+      navigate("/dashboard");
+    } catch (error: any) {
+      console.error("Error al registrar usuario:", error);
+      
+      let errorMsg = "Error al crear la cuenta. Por favor, intenta de nuevo.";
+      if (error.code === 'auth/email-already-in-use') {
+        errorMsg = "Este correo electrónico ya está en uso.";
+      } else if (error.code === 'auth/weak-password') {
+        errorMsg = "La contraseña es demasiado débil. Debe tener al menos 6 caracteres.";
+      }
+      
+      toast({
+        title: "Error de registro",
+        description: errorMsg,
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
   const signOut = async () => {
     try {
       // Cerrar sesión en Firebase
@@ -238,6 +284,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loading,
     signInWithGoogle,
     signInWithEmail,
+    signUp,
     signOut,
     isAdmin,
   };
