@@ -13,12 +13,12 @@ const AdminLoginForm: React.FC = () => {
   const [password, setPassword] = useState("pepito1234");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { signInWithEmail, currentUser, isAdmin } = useAuth();
+  const { signInWithEmail } = useAuth();
 
   useEffect(() => {
     // Limpiar cualquier error previo
     setError(null);
-  }, []);
+  }, [email, password]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +30,21 @@ const AdminLoginForm: React.FC = () => {
       await signInWithEmail(email, password);
     } catch (err: any) {
       console.error("Error al iniciar sesión:", err);
-      setError("Credenciales incorrectas. Por favor, verifica tu correo y contraseña.");
+      let errorMessage = "Credenciales incorrectas. Por favor, verifica tu correo y contraseña.";
+      
+      if (err.code === 'auth/invalid-credential') {
+        errorMessage = "Credenciales inválidas. Verifica que hayas escrito correctamente el correo y la contraseña.";
+      } else if (err.code === 'auth/user-not-found') {
+        errorMessage = "No existe un usuario con ese correo electrónico.";
+      } else if (err.code === 'auth/wrong-password') {
+        errorMessage = "Contraseña incorrecta.";
+      } else if (err.code === 'auth/too-many-requests') {
+        errorMessage = "Demasiados intentos fallidos. Por favor, intenta más tarde.";
+      } else if (err.code === 'auth/network-request-failed') {
+        errorMessage = "Error de conexión. Verifica tu conexión a internet.";
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -47,9 +61,7 @@ const AdminLoginForm: React.FC = () => {
       <CardContent>
         {error && (
           <Alert variant="destructive" className="mb-4">
-            <AlertDescription>
-              {error}
-            </AlertDescription>
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
         <form onSubmit={handleSubmit} className="space-y-4">
