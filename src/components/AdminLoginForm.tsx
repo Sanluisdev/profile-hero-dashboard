@@ -28,6 +28,7 @@ const AdminLoginForm: React.FC = () => {
     try {
       console.log("Intentando iniciar sesión con:", email, password);
       await signInWithEmail(email, password);
+      console.log("Inicio de sesión exitoso");
     } catch (err: any) {
       console.error("Error al iniciar sesión:", err);
       let errorMessage = "Credenciales incorrectas. Por favor, verifica tu correo y contraseña.";
@@ -101,7 +102,12 @@ const AdminLoginForm: React.FC = () => {
         </form>
       </CardContent>
       <CardFooter className="flex justify-center text-sm text-muted-foreground">
-        Acceso exclusivo para administradores
+        <div>
+          <p>Acceso exclusivo para administradores</p>
+          <p className="mt-2 text-xs text-center">
+            Usa: jmesparre@gmail.com / pepito1234
+          </p>
+        </div>
       </CardFooter>
     </Card>
   );

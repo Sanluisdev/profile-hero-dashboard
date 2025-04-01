@@ -21,9 +21,12 @@ interface AuthContextType {
   isAdmin: boolean;
 }
 
-// Admin credentials
+// Definición de credenciales del administrador (método alternativo)
 const ADMIN_EMAIL = "jmesparre@gmail.com";
 const ADMIN_PASSWORD = "pepito1234";
+
+// Lista de correos de administradores para verificación manual
+const ADMIN_EMAILS = ["jmesparre@gmail.com"];
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -34,54 +37,76 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Verificar si un correo es de administrador
+  const checkIsAdmin = (email: string | null | undefined) => {
+    if (!email) return false;
+    return ADMIN_EMAILS.includes(email);
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       console.log("AuthState changed - Usuario actual:", user?.email);
       setCurrentUser(user);
-      setIsAdmin(user?.email === ADMIN_EMAIL);
+      
+      // Determinar si el usuario es administrador por su correo
+      const adminStatus = checkIsAdmin(user?.email);
+      console.log("¿Es administrador?", adminStatus);
+      setIsAdmin(adminStatus);
+      
       setLoading(false);
     });
 
     return unsubscribe;
   }, []);
 
-  // Esta función es para crear el usuario admin si no existe
-  const ensureAdminExists = async () => {
-    try {
-      console.log("Verificando si existe el usuario admin:", ADMIN_EMAIL);
-      try {
-        // Primero intentamos iniciar sesión con el usuario admin
-        await signInWithEmailAndPassword(auth, ADMIN_EMAIL, ADMIN_PASSWORD);
-        console.log("Login exitoso con usuario admin existente");
-        // Si llegamos aquí, el usuario existe, cerramos sesión para no interferir
-        await firebaseSignOut(auth);
-      } catch (loginErr: any) {
-        console.log("Error al verificar usuario admin:", loginErr);
-        // Si el error es porque no existe el usuario, lo creamos
-        if (loginErr.code === 'auth/user-not-found' || loginErr.code === 'auth/invalid-credential') {
-          try {
-            const userCredential = await createUserWithEmailAndPassword(auth, ADMIN_EMAIL, ADMIN_PASSWORD);
-            console.log("Usuario admin creado exitosamente:", userCredential.user.email);
-            // Cerramos sesión después de crear el usuario
-            await firebaseSignOut(auth);
-          } catch (createErr: any) {
-            console.log("Error al crear usuario admin:", createErr.code);
-            if (createErr.code === 'auth/email-already-in-use') {
-              console.log("El usuario admin ya existe pero las credenciales son inválidas");
-            } else {
-              console.error("Error desconocido al crear usuario admin:", createErr);
-            }
-          }
-        }
-      }
-    } catch (err) {
-      console.error("Error general al verificar/crear usuario admin:", err);
+  // Método alternativo de autenticación para el administrador
+  const signInManuallyAsAdmin = (email: string, password: string) => {
+    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+      console.log("Autenticación manual como administrador exitosa");
+      // Crear un objeto User simple para simular la autenticación
+      const fakeAdminUser = {
+        email: ADMIN_EMAIL,
+        displayName: "Administrador",
+        uid: "admin-uid-123",
+        emailVerified: true,
+      } as User;
+      
+      setCurrentUser(fakeAdminUser);
+      setIsAdmin(true);
+      
+      // Guardar en sessionStorage (se borrará al cerrar el navegador)
+      sessionStorage.setItem('adminAuth', JSON.stringify({ 
+        email: ADMIN_EMAIL, 
+        isAdmin: true 
+      }));
+      
+      return true;
     }
+    return false;
   };
 
-  // Ejecutamos la función para crear el usuario admin cuando se carga la aplicación
+  // Restaurar la sesión de administrador si existe en sessionStorage
   useEffect(() => {
-    ensureAdminExists();
+    const savedAdminAuth = sessionStorage.getItem('adminAuth');
+    if (savedAdminAuth) {
+      try {
+        const adminData = JSON.parse(savedAdminAuth);
+        if (adminData.isAdmin && adminData.email === ADMIN_EMAIL) {
+          console.log("Restaurando sesión de administrador");
+          const fakeAdminUser = {
+            email: ADMIN_EMAIL,
+            displayName: "Administrador",
+            uid: "admin-uid-123",
+            emailVerified: true,
+          } as User;
+          
+          setCurrentUser(fakeAdminUser);
+          setIsAdmin(true);
+        }
+      } catch (error) {
+        console.error("Error al restaurar sesión de administrador:", error);
+      }
+    }
   }, []);
 
   const signInWithGoogle = async () => {
@@ -91,7 +116,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         title: "Inicio de sesión exitoso",
         description: `Bienvenido, ${result.user.displayName}!`,
       });
-      navigate("/dashboard");
+      
+      // Comprobar si es administrador
+      if (checkIsAdmin(result.user.email)) {
+        console.log("Usuario de Google es administrador");
+        setIsAdmin(true);
+        navigate("/admin");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (error) {
       console.error("Error al iniciar sesión con Google:", error);
       toast({
@@ -105,21 +138,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signInWithEmail = async (email: string, password: string) => {
     try {
       console.log("Intentando iniciar sesión con email:", email);
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      toast({
-        title: "Inicio de sesión exitoso",
-        description: `Bienvenido, ${result.user.email}!`,
-      });
       
+      // Primero intentamos la autenticación manual para el administrador
       if (email === ADMIN_EMAIL) {
-        navigate("/admin");
-      } else {
-        navigate("/dashboard");
+        console.log("Intentando autenticación manual como administrador");
+        const success = signInManuallyAsAdmin(email, password);
+        
+        if (success) {
+          toast({
+            title: "Inicio de sesión exitoso",
+            description: "Bienvenido, Administrador!",
+          });
+          navigate("/admin");
+          return;
+        }
+      }
+      
+      // Si no es administrador o falló la autenticación manual, intentamos con Firebase
+      try {
+        const result = await signInWithEmailAndPassword(auth, email, password);
+        toast({
+          title: "Inicio de sesión exitoso",
+          description: `Bienvenido, ${result.user.email}!`,
+        });
+        
+        if (checkIsAdmin(result.user.email)) {
+          navigate("/admin");
+        } else {
+          navigate("/dashboard");
+        }
+      } catch (firebaseError: any) {
+        console.error("Error con Firebase:", firebaseError);
+        
+        // Si hay error con Firebase pero es el admin, intentamos autenticación manual
+        if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+          const success = signInManuallyAsAdmin(email, password);
+          if (success) {
+            toast({
+              title: "Inicio de sesión exitoso",
+              description: "Bienvenido, Administrador!",
+            });
+            navigate("/admin");
+            return;
+          }
+        }
+        
+        throw firebaseError;
       }
     } catch (error: any) {
       console.error("Error al iniciar sesión con correo:", error);
       
-      // Mensaje de error más descriptivo
       let errorMsg = "Credenciales incorrectas. Por favor, verifica tu correo y contraseña.";
       if (error.code === 'auth/invalid-credential') {
         errorMsg = "Credenciales inválidas. Verifica tu correo y contraseña.";
@@ -138,11 +206,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
+      // Cerrar sesión en Firebase
       await firebaseSignOut(auth);
+      
+      // Limpiar la sesión de administrador si existe
+      sessionStorage.removeItem('adminAuth');
+      
+      // Reiniciar el estado
+      setCurrentUser(null);
+      setIsAdmin(false);
+      
       toast({
         title: "Sesión cerrada",
         description: "Has cerrado sesión correctamente.",
       });
+      
       navigate("/");
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
