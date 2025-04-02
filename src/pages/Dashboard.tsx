@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
@@ -10,13 +10,86 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Pencil, Upload } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import FileUploader from "@/components/FileUploader";
 
 const Dashboard: React.FC = () => {
   const { currentUser, signOut } = useAuth();
+  const { toast } = useToast();
+  
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [displayName, setDisplayName] = useState(currentUser?.displayName || "");
+  const [phone, setPhone] = useState("");
+  const [allergies, setAllergies] = useState("");
+  const [diseases, setDiseases] = useState("");
+  const [medications, setMedications] = useState("");
 
   if (!currentUser) {
     return <div>Cargando...</div>;
   }
+
+  const handleUpdateName = async () => {
+    if (!currentUser) return;
+
+    try {
+      // Update displayName in Firebase Auth
+      await currentUser.updateProfile({
+        displayName: displayName,
+      });
+
+      // Update displayName in Firestore
+      const userRef = doc(db, "users", currentUser.uid);
+      await updateDoc(userRef, {
+        displayName: displayName,
+      });
+
+      setIsEditingName(false);
+      toast({
+        title: "Nombre actualizado",
+        description: "Tu nombre ha sido actualizado correctamente",
+      });
+    } catch (error) {
+      console.error("Error updating name:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el nombre",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateProfile = async () => {
+    if (!currentUser) return;
+    
+    try {
+      const userRef = doc(db, "users", currentUser.uid);
+      await updateDoc(userRef, {
+        phone,
+        medicalInfo: {
+          allergies,
+          diseases,
+          medications
+        }
+      });
+      
+      toast({
+        title: "Perfil actualizado",
+        description: "Tu información ha sido actualizada correctamente",
+      });
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar la información",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -49,7 +122,31 @@ const Dashboard: React.FC = () => {
                   />
                 </div>
                 <div className="text-center">
-                  <h3 className="text-xl font-medium text-gray-900">{currentUser.displayName}</h3>
+                  {isEditingName ? (
+                    <div className="space-y-2">
+                      <Input 
+                        value={displayName} 
+                        onChange={(e) => setDisplayName(e.target.value)} 
+                        className="text-center"
+                      />
+                      <div className="flex gap-2 justify-center">
+                        <Button size="sm" onClick={handleUpdateName}>Guardar</Button>
+                        <Button size="sm" variant="outline" onClick={() => setIsEditingName(false)}>Cancelar</Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center gap-2">
+                      <h3 className="text-xl font-medium text-gray-900">{currentUser.displayName}</h3>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-6 w-6" 
+                        onClick={() => setIsEditingName(true)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
                   <p className="text-gray-500">{currentUser.email}</p>
                 </div>
                 <div className="pt-4 w-full">
@@ -78,26 +175,71 @@ const Dashboard: React.FC = () => {
                   <p className="text-gray-900">{currentUser.email}</p>
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500">ID de usuario</h4>
-                  <p className="text-gray-900">{currentUser.uid}</p>
+                  <h4 className="text-sm font-medium text-gray-500">Teléfono</h4>
+                  <Input 
+                    value={phone} 
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="Ingresa tu número de teléfono"
+                    className="mt-1"
+                  />
+                </div>
+                <Button onClick={handleUpdateProfile} className="w-full">
+                  Guardar información personal
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Información Clínica */}
+          <Card className="md:col-span-3">
+            <CardHeader>
+              <CardTitle>Información Clínica</CardTitle>
+              <CardDescription>Información médica relevante</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500 mb-2">Alergias</h4>
+                  <Textarea 
+                    value={allergies} 
+                    onChange={(e) => setAllergies(e.target.value)}
+                    placeholder="Describe tus alergias"
+                    rows={4}
+                  />
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500">Último inicio de sesión</h4>
-                  <p className="text-gray-900">
-                    {currentUser.metadata.lastSignInTime 
-                      ? new Date(currentUser.metadata.lastSignInTime).toLocaleString() 
-                      : "No disponible"}
-                  </p>
+                  <h4 className="text-sm font-medium text-gray-500 mb-2">Enfermedades</h4>
+                  <Textarea 
+                    value={diseases} 
+                    onChange={(e) => setDiseases(e.target.value)}
+                    placeholder="Describe tus enfermedades"
+                    rows={4}
+                  />
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500">Cuenta creada</h4>
-                  <p className="text-gray-900">
-                    {currentUser.metadata.creationTime
-                      ? new Date(currentUser.metadata.creationTime).toLocaleString()
-                      : "No disponible"}
-                  </p>
+                  <h4 className="text-sm font-medium text-gray-500 mb-2">Medicamentos prescriptos</h4>
+                  <Textarea 
+                    value={medications} 
+                    onChange={(e) => setMedications(e.target.value)}
+                    placeholder="Lista tus medicamentos"
+                    rows={4}
+                  />
                 </div>
               </div>
+              <Button onClick={handleUpdateProfile} className="w-full mt-6">
+                Guardar información clínica
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Estudios Clínicos */}
+          <Card className="md:col-span-3">
+            <CardHeader>
+              <CardTitle>Estudios Clínicos</CardTitle>
+              <CardDescription>Sube tus estudios clínicos</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FileUploader userId={currentUser.uid} />
             </CardContent>
           </Card>
         </div>
