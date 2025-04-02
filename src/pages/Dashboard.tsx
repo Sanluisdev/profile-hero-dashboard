@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { updateProfile } from "firebase/auth";
 import FileUploader from "@/components/FileUploader";
 
 const Dashboard: React.FC = () => {
@@ -38,7 +39,7 @@ const Dashboard: React.FC = () => {
 
     try {
       // Update displayName in Firebase Auth
-      await currentUser.updateProfile({
+      await updateProfile(currentUser, {
         displayName: displayName,
       });
 
