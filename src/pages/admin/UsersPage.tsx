@@ -20,34 +20,34 @@ const UsersPage: React.FC = () => {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="neo-subtitle text-black">Gestión de Usuarios</h2>
+        <h2 className="text-2xl font-bold">Gestión de Usuarios</h2>
         
         <div className="flex gap-2">
           <Button 
             variant="outline"
             onClick={handleRefresh} 
-            className="flex items-center gap-2 border-2 border-black shadow-neo-sm hover:shadow-none hover:translate-y-1 transition-all"
+            className="flex items-center gap-2"
           >
             <RefreshCw className="h-4 w-4" />
             <span>Actualizar</span>
           </Button>
           
-          <Button className="flex items-center gap-2 bg-neo-teal border-2 border-black text-white font-bold shadow-neo-sm hover:shadow-none hover:translate-y-1 transition-all">
+          <Button className="flex items-center gap-2">
             <UserPlus className="h-4 w-4" />
             <span>Agregar Usuario</span>
           </Button>
         </div>
       </div>
       
-      <Alert className="mb-4 border-2 border-black bg-neo-yellow/20">
+      <Alert className="mb-4">
         <InfoIcon className="h-4 w-4 mr-2" />
         <AlertDescription>
           Se muestran todos los usuarios registrados en la colección "users" de Firestore. Si no ves usuarios, verifica que exista esta colección en tu base de datos.
         </AlertDescription>
       </Alert>
       
-      <div className="neo-card p-6 animate-pop">
-        <h3 className="text-lg font-bold mb-4 text-black">Usuarios registrados</h3>
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h3 className="text-lg font-medium mb-4">Usuarios registrados</h3>
         <UserTable />
       </div>
     </div>

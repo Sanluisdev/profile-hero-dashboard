@@ -99,9 +99,9 @@ const UserTable = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-8 animate-pulse">
-        <Loader2 className="h-8 w-8 animate-spin text-neo-purple mr-2" />
-        <span className="font-medium">Cargando usuarios...</span>
+      <div className="flex justify-center items-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600 mr-2" />
+        <span>Cargando usuarios...</span>
       </div>
     );
   }
@@ -109,33 +109,29 @@ const UserTable = () => {
   return (
     <div className="w-full">
       {error && (
-        <Alert variant="destructive" className="mb-4 border-2 border-black bg-red-100">
+        <Alert variant="destructive" className="mb-4">
           <AlertCircle className="h-4 w-4 mr-2" />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
       
       <div className="flex justify-end mb-4">
-        <Button 
-          variant="outline" 
-          onClick={handleRefresh} 
-          className="flex items-center gap-2 border-2 border-black shadow-neo-sm hover:shadow-none hover:translate-y-1 transition-all"
-        >
+        <Button variant="outline" onClick={handleRefresh} className="flex items-center gap-2">
           <RefreshCw className="h-4 w-4" />
           <span>Actualizar</span>
         </Button>
       </div>
       
-      <div className="w-full overflow-auto border-2 border-black rounded-lg shadow-neo">
+      <div className="w-full overflow-auto">
         <Table>
           <TableHeader>
-            <TableRow className="bg-neo-purple/10 hover:bg-neo-purple/20">
-              <TableHead className="font-bold">Usuario</TableHead>
-              <TableHead className="font-bold">Email</TableHead>
-              <TableHead className="font-bold">ID</TableHead>
-              <TableHead className="font-bold">Proveedor</TableHead>
-              <TableHead className="font-bold">Fecha de creación</TableHead>
-              <TableHead className="font-bold">Último acceso</TableHead>
+            <TableRow>
+              <TableHead>Usuario</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>ID</TableHead>
+              <TableHead>Proveedor</TableHead>
+              <TableHead>Fecha de creación</TableHead>
+              <TableHead>Último acceso</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -143,9 +139,9 @@ const UserTable = () => {
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8">
                   <div className="flex flex-col items-center justify-center">
-                    <AlertCircle className="h-8 w-8 text-neo-yellow mb-2" />
-                    <p className="font-medium">No hay usuarios registrados en la colección "users"</p>
-                    <p className="text-sm text-black/70 mt-1">
+                    <AlertCircle className="h-8 w-8 text-amber-500 mb-2" />
+                    <p>No hay usuarios registrados en la colección "users"</p>
+                    <p className="text-sm text-muted-foreground mt-1">
                       Es posible que necesites crear usuarios o verificar los permisos de Firestore
                     </p>
                   </div>
@@ -153,10 +149,10 @@ const UserTable = () => {
               </TableRow>
             ) : (
               users.map((user) => (
-                <TableRow key={user.uid} className="hover:bg-neo-blue/10 transition-colors">
+                <TableRow key={user.uid}>
                   <TableCell className="font-medium">
                     <div className="flex items-center space-x-2">
-                      <Avatar className="border-2 border-black">
+                      <Avatar>
                         {user.photoURL ? (
                           <AvatarImage 
                             src={user.photoURL} 
@@ -167,7 +163,7 @@ const UserTable = () => {
                             }}
                           />
                         ) : null}
-                        <AvatarFallback className="bg-neo-purple text-white">
+                        <AvatarFallback>
                           {user.displayName ? user.displayName.charAt(0).toUpperCase() : "U"}
                         </AvatarFallback>
                       </Avatar>
@@ -175,12 +171,8 @@ const UserTable = () => {
                     </div>
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
-                  <TableCell className="font-mono text-xs max-w-[120px] truncate bg-black text-white p-1 rounded">{user.uid}</TableCell>
-                  <TableCell>
-                    <span className="px-2 py-1 bg-neo-teal/20 rounded-full text-xs font-medium">
-                      {user.provider || "N/A"}
-                    </span>
-                  </TableCell>
+                  <TableCell className="font-mono text-xs max-w-[120px] truncate">{user.uid}</TableCell>
+                  <TableCell>{user.provider || "N/A"}</TableCell>
                   <TableCell>
                     {user.createdAt ? new Date(user.createdAt.seconds * 1000).toLocaleString() : "N/A"}
                   </TableCell>
