@@ -1,7 +1,6 @@
-
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { getFirestore, connectFirestoreEmulator, collection, doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { getFirestore, connectFirestoreEmulator, collection, doc, setDoc, serverTimestamp, FieldValue } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 
 // Configuración de Firebase
@@ -52,7 +51,15 @@ const saveUserToFirestore = async (user) => {
     const userRef = doc(db, "users", user.uid);
     
     // Datos base que guardaremos/actualizaremos
-    const userData = {
+    const userData: {
+      uid: any;
+      email: any;
+      displayName: any;
+      photoURL: any;
+      lastLogin: FieldValue;
+      provider: any;
+      createdAt?: FieldValue;
+    } = {
       uid: user.uid,
       email: user.email,
       displayName: user.displayName || null,
