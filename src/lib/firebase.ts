@@ -1,5 +1,5 @@
 
-import { initializeApp } from "firebase/auth";
+import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { getFirestore, connectFirestoreEmulator, collection, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
