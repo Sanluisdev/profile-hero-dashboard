@@ -1,5 +1,5 @@
 
-import { initializeApp } from "firebase/app";
+import { initializeApp } from "firebase/auth";
 import { getAuth, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { getFirestore, connectFirestoreEmulator, collection, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
@@ -51,7 +51,7 @@ const saveUserToFirestore = async (user) => {
     // Ruta al documento del usuario utilizando su UID como ID del documento
     const userRef = doc(db, "users", user.uid);
     
-    // Datos que guardaremos/actualizaremos
+    // Datos base que guardaremos/actualizaremos
     const userData = {
       uid: user.uid,
       email: user.email,
