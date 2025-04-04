@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import Navbar from "@/components/Navbar";
 import UserSidebar from "@/components/UserSidebar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,10 +11,93 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
+import { format, isSameDay } from "date-fns";
+import { es } from "date-fns/locale";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { ChevronDown } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
+
+// Interface for time slots
+interface TimeSlot {
+  id: string;
+  time: string;
+  available: number;
+}
+
+// Interface for time periods
+interface TimePeriod {
+  name: string;
+  slots: TimeSlot[];
+}
 
 const Citas: React.FC = () => {
   const { currentUser } = useAuth();
-  const [date, setDate] = React.useState<Date | undefined>(new Date());
+  const [date, setDate] = useState<Date | undefined>(new Date());
+  const { toast } = useToast();
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+
+  // Mock data - available days (you would fetch this from a database)
+  const availableDays = [
+    new Date(2025, 3, 3), // April 3, 2025
+    new Date(2025, 3, 5), 
+    new Date(2025, 3, 10),
+    new Date(2025, 3, 12),
+    new Date(2025, 3, 17),
+    new Date(2025, 3, 19),
+    new Date(2025, 3, 24),
+    new Date(2025, 3, 26),
+  ];
+
+  // Mock data - time slots
+  const timePeriods: TimePeriod[] = [
+    {
+      name: "Mañana",
+      slots: [
+        { id: "1", time: "07:30 am - 09:00 am", available: 15 },
+        { id: "2", time: "09:00 am - 10:30 am", available: 15 },
+        { id: "3", time: "10:30 am - 12:00 pm", available: 15 }
+      ]
+    },
+    {
+      name: "Tarde",
+      slots: [
+        { id: "4", time: "12:00 pm - 01:30 pm", available: 15 },
+        { id: "5", time: "01:30 pm - 03:00 pm", available: 15 },
+        { id: "6", time: "03:00 pm - 04:30 pm", available: 15 }
+      ]
+    }
+  ];
+
+  // Function to check if a day is available
+  const isDayAvailable = (day: Date): boolean => {
+    return availableDays.some(availableDay => isSameDay(availableDay, day));
+  };
+
+  // Handle time slot selection
+  const handleTimeSlotSelect = (slotId: string) => {
+    setSelectedTimeSlot(slotId);
+  };
+
+  // Function to handle appointment booking
+  const handleBookAppointment = () => {
+    if (!date || !selectedTimeSlot) return;
+    
+    const selectedSlot = timePeriods.flatMap(period => period.slots).find(slot => slot.id === selectedTimeSlot);
+    
+    if (!selectedSlot) return;
+    
+    // Here you would make an API call to book the appointment
+    // For now, just show a success toast
+    toast({
+      title: "Cita programada",
+      description: `Tu cita ha sido programada para el ${format(date, "PPP", { locale: es })} a las ${selectedSlot.time}.`,
+    });
+    
+    setShowConfirmation(true);
+  };
 
   if (!currentUser) {
     return <div>Cargando...</div>;
@@ -37,29 +120,131 @@ const Citas: React.FC = () => {
             <Card className="md:col-span-1">
               <CardHeader>
                 <CardTitle>Calendario</CardTitle>
-                <CardDescription>Selecciona una fecha</CardDescription>
+                <CardDescription>Selecciona una fecha disponible</CardDescription>
               </CardHeader>
               <CardContent>
                 <Calendar
                   mode="single"
                   selected={date}
                   onSelect={setDate}
-                  className="rounded-md border"
+                  className="rounded-md border pointer-events-auto"
+                  classNames={{
+                    day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                    day: cn(
+                      "h-9 w-9 p-0 font-normal aria-selected:opacity-100",
+                      "hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                    ),
+                    day_today: "bg-accent text-accent-foreground",
+                    day_disabled: "text-muted-foreground opacity-50",
+                  }}
+                  disabled={(date) => !isDayAvailable(date)}
                 />
               </CardContent>
             </Card>
             
-            <Card className="md:col-span-2">
-              <CardHeader>
-                <CardTitle>Citas programadas</CardTitle>
-                <CardDescription>Listado de tus próximas citas</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-gray-500">
-                  <p>No tienes citas programadas por el momento.</p>
-                </div>
-              </CardContent>
-            </Card>
+            {!showConfirmation ? (
+              <Card className="md:col-span-2">
+                <CardHeader>
+                  <CardTitle>Horarios Disponibles</CardTitle>
+                  <CardDescription>
+                    {date ? (
+                      `Selecciona un horario para el ${format(date, "PPP", { locale: es })}`
+                    ) : (
+                      "Primero selecciona una fecha"
+                    )}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {date && isDayAvailable(date) ? (
+                    <ScrollArea className="h-[400px] pr-4">
+                      {timePeriods.map((period) => (
+                        <div key={period.name} className="mb-6">
+                          <h3 className="text-lg font-medium mb-2">{period.name}</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {period.slots.map((slot) => (
+                              <Button
+                                key={slot.id}
+                                variant={selectedTimeSlot === slot.id ? "default" : "outline"}
+                                className={cn(
+                                  "justify-start h-auto py-3 px-4",
+                                  selectedTimeSlot === slot.id ? "border-primary" : "border-gray-200"
+                                )}
+                                onClick={() => handleTimeSlotSelect(slot.id)}
+                              >
+                                <div className="flex flex-col items-start">
+                                  <span className="text-left">{slot.time}</span>
+                                  <span className="text-sm text-muted-foreground">
+                                    {slot.available} turnos disponibles
+                                  </span>
+                                </div>
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                      
+                      <div className="mt-6">
+                        <Button 
+                          className="w-full" 
+                          disabled={!selectedTimeSlot}
+                          onClick={handleBookAppointment}
+                        >
+                          Reservar Cita
+                        </Button>
+                      </div>
+                    </ScrollArea>
+                  ) : (
+                    <div className="text-center py-12 text-gray-500">
+                      <p>{date ? "No hay horarios disponibles para esta fecha." : "Selecciona una fecha para ver los horarios disponibles."}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="md:col-span-2">
+                <CardHeader>
+                  <CardTitle>Cita Confirmada</CardTitle>
+                  <CardDescription>
+                    Tu cita ha sido reservada con éxito
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="bg-green-50 border border-green-200 rounded-md p-4 mb-4">
+                    <h3 className="font-medium text-green-800 mb-2">Detalles de la cita:</h3>
+                    <p className="text-green-700">
+                      <strong>Fecha:</strong> {date && format(date, "PPP", { locale: es })}
+                    </p>
+                    <p className="text-green-700">
+                      <strong>Hora:</strong> {
+                        selectedTimeSlot && 
+                        timePeriods
+                          .flatMap(period => period.slots)
+                          .find(slot => slot.id === selectedTimeSlot)?.time
+                      }
+                    </p>
+                  </div>
+                  
+                  <p className="text-gray-600 mb-4">
+                    Se ha enviado un correo electrónico de confirmación a tu dirección de correo.
+                  </p>
+                  
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button 
+                      onClick={() => {
+                        setShowConfirmation(false);
+                        setSelectedTimeSlot(null);
+                        setDate(new Date());
+                      }}
+                    >
+                      Agendar otra cita
+                    </Button>
+                    <Button variant="outline">
+                      Volver al panel
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
