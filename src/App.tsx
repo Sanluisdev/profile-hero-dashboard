@@ -9,6 +9,8 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import ProtectedAdminRoute from "@/components/ProtectedAdminRoute";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
+import Panel from "./pages/Panel";
+import Citas from "./pages/Citas";
 import NotFound from "./pages/NotFound";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -29,6 +31,16 @@ const App = () => (
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/panel" element={
+              <ProtectedRoute>
+                <Panel />
+              </ProtectedRoute>
+            } />
+            <Route path="/citas" element={
+              <ProtectedRoute>
+                <Citas />
               </ProtectedRoute>
             } />
             <Route path="/admin-login" element={<AdminLogin />} />
