@@ -1,4 +1,5 @@
 
+import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,49 +20,54 @@ import AdminHome from "./pages/admin/AdminHome";
 import UsersPage from "./pages/admin/UsersPage";
 import AdminCitas from "./pages/admin/AdminCitas";
 
+// Create a new QueryClient instance to manage queries
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <BrowserRouter>
-        <AuthProvider>
-          <Toaster />
-          <Sonner />
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/panel" element={
-              <ProtectedRoute>
-                <Panel />
-              </ProtectedRoute>
-            } />
-            <Route path="/citas" element={
-              <ProtectedRoute>
-                <Citas />
-              </ProtectedRoute>
-            } />
-            <Route path="/admin-login" element={<AdminLogin />} />
-            <Route path="/admin" element={
-              <ProtectedAdminRoute>
-                <AdminDashboard />
-              </ProtectedAdminRoute>
-            }>
-              <Route index element={<AdminHome />} />
-              <Route path="users" element={<UsersPage />} />
-              <Route path="citas" element={<AdminCitas />} />
-              <Route path="planilla-horas" element={<PlanillaHoras />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  return (
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <BrowserRouter>
+            <AuthProvider>
+              <Toaster />
+              <Sonner />
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/dashboard" element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/panel" element={
+                  <ProtectedRoute>
+                    <Panel />
+                  </ProtectedRoute>
+                } />
+                <Route path="/citas" element={
+                  <ProtectedRoute>
+                    <Citas />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin-login" element={<AdminLogin />} />
+                <Route path="/admin" element={
+                  <ProtectedAdminRoute>
+                    <AdminDashboard />
+                  </ProtectedAdminRoute>
+                }>
+                  <Route index element={<AdminHome />} />
+                  <Route path="users" element={<UsersPage />} />
+                  <Route path="citas" element={<AdminCitas />} />
+                  <Route path="planilla-horas" element={<PlanillaHoras />} />
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </AuthProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </React.StrictMode>
+  );
+};
 
 export default App;
