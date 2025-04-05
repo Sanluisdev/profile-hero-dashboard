@@ -1,6 +1,5 @@
 
 import React, { useState } from "react";
-import UserSidebar from "@/components/UserSidebar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -95,85 +94,82 @@ const PlanillaHoras: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-gray-100">
-      <UserSidebar />
-      <div className="flex-1 p-4 md:p-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Planilla de Horas</h1>
-          <p className="text-gray-600">Configure su disponibilidad semanal</p>
-        </div>
-        
-        <div className="grid gap-6">
-          {schedule.map((day, dayIndex) => (
-            <Card key={day.dayName} className="w-full">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xl">{day.dayName}</CardTitle>
-                <div className="flex items-center">
-                  <label className="text-sm mr-2">Día laborable</label>
-                  <input
-                    type="checkbox"
-                    checked={day.isWorkDay}
-                    onChange={() => toggleWorkDay(dayIndex)}
-                    className="form-checkbox h-5 w-5 text-blue-600"
-                  />
-                </div>
-              </CardHeader>
-              
-              <CardContent>
-                {day.isWorkDay ? (
-                  <>
-                    {day.timeRanges.map((range) => (
-                      <div key={range.id} className="flex items-center gap-2 mb-3">
-                        <div className="flex-1 flex items-center">
-                          <span className="mr-2">De</span>
-                          <Input
-                            type="time"
-                            value={range.start}
-                            onChange={(e) => updateTimeRange(dayIndex, range.id, "start", e.target.value)}
-                            className="flex-1"
-                          />
-                        </div>
-                        <div className="flex-1 flex items-center">
-                          <span className="mx-2">a</span>
-                          <Input
-                            type="time"
-                            value={range.end}
-                            onChange={(e) => updateTimeRange(dayIndex, range.id, "end", e.target.value)}
-                            className="flex-1"
-                          />
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeTimeRange(dayIndex, range.id)}
-                          disabled={day.timeRanges.length === 1}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <Trash2 className="h-5 w-5" />
-                        </Button>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-800">Planilla de Horas</h1>
+        <p className="text-gray-600">Configure la disponibilidad semanal</p>
+      </div>
+      
+      <div className="grid gap-6">
+        {schedule.map((day, dayIndex) => (
+          <Card key={day.dayName} className="w-full">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xl">{day.dayName}</CardTitle>
+              <div className="flex items-center">
+                <label className="text-sm mr-2">Día laborable</label>
+                <input
+                  type="checkbox"
+                  checked={day.isWorkDay}
+                  onChange={() => toggleWorkDay(dayIndex)}
+                  className="form-checkbox h-5 w-5 text-blue-600"
+                />
+              </div>
+            </CardHeader>
+            
+            <CardContent>
+              {day.isWorkDay ? (
+                <>
+                  {day.timeRanges.map((range) => (
+                    <div key={range.id} className="flex items-center gap-2 mb-3">
+                      <div className="flex-1 flex items-center">
+                        <span className="mr-2">De</span>
+                        <Input
+                          type="time"
+                          value={range.start}
+                          onChange={(e) => updateTimeRange(dayIndex, range.id, "start", e.target.value)}
+                          className="flex-1"
+                        />
                       </div>
-                    ))}
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => addTimeRange(dayIndex)} 
-                      className="mt-2"
-                    >
-                      <Plus className="h-4 w-4 mr-1" /> Agregar horario
-                    </Button>
-                  </>
-                ) : (
-                  <div className="text-gray-500 py-2">Ninguno - Día no laborable</div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-          
-          <div className="flex justify-end mt-4">
-            <Button onClick={saveSchedule} className="bg-blue-600 hover:bg-blue-700">
-              Guardar Horarios
-            </Button>
-          </div>
+                      <div className="flex-1 flex items-center">
+                        <span className="mx-2">a</span>
+                        <Input
+                          type="time"
+                          value={range.end}
+                          onChange={(e) => updateTimeRange(dayIndex, range.id, "end", e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeTimeRange(dayIndex, range.id)}
+                        disabled={day.timeRanges.length === 1}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => addTimeRange(dayIndex)} 
+                    className="mt-2"
+                  >
+                    <Plus className="h-4 w-4 mr-1" /> Agregar horario
+                  </Button>
+                </>
+              ) : (
+                <div className="text-gray-500 py-2">Ninguno - Día no laborable</div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+        
+        <div className="flex justify-end mt-4">
+          <Button onClick={saveSchedule} className="bg-blue-600 hover:bg-blue-700">
+            Guardar Horarios
+          </Button>
         </div>
       </div>
     </div>

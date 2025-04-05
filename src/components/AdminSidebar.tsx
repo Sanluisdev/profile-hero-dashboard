@@ -1,7 +1,7 @@
 
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { Users, LayoutDashboard, LogOut } from "lucide-react";
+import { Users, LayoutDashboard, LogOut, Calendar, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -39,6 +39,30 @@ const AdminSidebar: React.FC = () => {
             >
               <Users className="mr-3 h-5 w-5" />
               Usuarios
+            </NavLink>
+          </li>
+          <li>
+            <NavLink 
+              to="/admin/citas" 
+              className={({ isActive }) => `
+                flex items-center px-4 py-3 rounded-md transition-colors
+                ${isActive ? 'bg-blue-700' : 'hover:bg-gray-800 text-gray-300'}
+              `}
+            >
+              <Calendar className="mr-3 h-5 w-5" />
+              Citas
+            </NavLink>
+          </li>
+          <li>
+            <NavLink 
+              to="/admin/planilla-horas" 
+              className={({ isActive }) => `
+                flex items-center px-4 py-3 rounded-md transition-colors
+                ${isActive ? 'bg-blue-700' : 'hover:bg-gray-800 text-gray-300'}
+              `}
+            >
+              <Clock className="mr-3 h-5 w-5" />
+              Planilla de horas
             </NavLink>
           </li>
         </ul>

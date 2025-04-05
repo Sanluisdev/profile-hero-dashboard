@@ -17,6 +17,7 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminHome from "./pages/admin/AdminHome";
 import UsersPage from "./pages/admin/UsersPage";
+import AdminCitas from "./pages/admin/AdminCitas";
 
 const queryClient = new QueryClient();
 
@@ -44,11 +45,6 @@ const App = () => (
                 <Citas />
               </ProtectedRoute>
             } />
-            <Route path="/planilla-horas" element={
-              <ProtectedRoute>
-                <PlanillaHoras />
-              </ProtectedRoute>
-            } />
             <Route path="/admin-login" element={<AdminLogin />} />
             <Route path="/admin" element={
               <ProtectedAdminRoute>
@@ -57,6 +53,8 @@ const App = () => (
             }>
               <Route index element={<AdminHome />} />
               <Route path="users" element={<UsersPage />} />
+              <Route path="citas" element={<AdminCitas />} />
+              <Route path="planilla-horas" element={<PlanillaHoras />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
