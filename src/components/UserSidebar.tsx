@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { User, Calendar, Home } from "lucide-react";
+import { User, Calendar, Home, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +31,11 @@ const UserSidebar: React.FC = () => {
       title: "Citas",
       icon: Calendar,
       path: "/citas",
+    },
+    {
+      title: "Planilla de horas",
+      icon: Clock,
+      path: "/planilla-horas",
     }
   ];
   

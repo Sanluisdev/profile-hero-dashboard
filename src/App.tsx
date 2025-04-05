@@ -11,6 +11,7 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Panel from "./pages/Panel";
 import Citas from "./pages/Citas";
+import PlanillaHoras from "./pages/PlanillaHoras";
 import NotFound from "./pages/NotFound";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -41,6 +42,11 @@ const App = () => (
             <Route path="/citas" element={
               <ProtectedRoute>
                 <Citas />
+              </ProtectedRoute>
+            } />
+            <Route path="/planilla-horas" element={
+              <ProtectedRoute>
+                <PlanillaHoras />
               </ProtectedRoute>
             } />
             <Route path="/admin-login" element={<AdminLogin />} />
