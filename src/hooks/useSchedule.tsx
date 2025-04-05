@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, doc, setDoc, deleteDoc } from "firebase/firestore";
 
 // Types for our schedule
 export type TimeRange = {
@@ -119,11 +118,39 @@ export function useSchedule() {
     return schedule[adjustedDayIndex]?.isWorkDay || false;
   };
 
+  // Save schedule to firestore
+  const saveSchedule = async () => {
+    try {
+      // First, clear any existing schedule
+      const scheduleCollection = collection(db, "schedule");
+      const snapshot = await getDocs(scheduleCollection);
+      
+      // Delete all existing documents
+      const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(deletePromises);
+      
+      // Add new schedule documents
+      const savePromises = schedule.map(async (day, index) => {
+        // Use ordinal index as document ID to preserve order
+        await setDoc(doc(db, "schedule", `day-${index}`), day);
+      });
+      
+      await Promise.all(savePromises);
+      
+      return { success: true, message: "Horario guardado correctamente" };
+    } catch (error) {
+      console.error("Error al guardar horario:", error);
+      return { success: false, message: "Error al guardar el horario. Verifica los permisos." };
+    }
+  };
+
   return {
     schedule,
+    setSchedule,
     loading,
     error,
     getAvailableTimesForDate,
-    isWorkDay
+    isWorkDay,
+    saveSchedule
   };
 }

@@ -5,23 +5,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { db } from "@/lib/firebase";
-import { collection, addDoc, getDocs, doc, setDoc, deleteDoc } from "firebase/firestore";
 import { useSchedule, DaySchedule } from "@/hooks/useSchedule";
 
 const PlanillaHoras: React.FC = () => {
-  const { schedule: initialSchedule, loading } = useSchedule();
-  const [schedule, setSchedule] = useState<DaySchedule[]>([]);
+  const { schedule: initialSchedule, loading, setSchedule, saveSchedule } = useSchedule();
+  const [schedule, setLocalSchedule] = useState<DaySchedule[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
   
   // When the initial schedule loads from our hook, set it to local state
   useEffect(() => {
     if (initialSchedule.length > 0) {
-      setSchedule(initialSchedule);
+      setLocalSchedule(initialSchedule);
     }
   }, [initialSchedule]);
 
   const addTimeRange = (dayIndex: number) => {
-    setSchedule((prev) => {
+    setLocalSchedule((prev) => {
       const newSchedule = [...prev];
       newSchedule[dayIndex].timeRanges.push({
         id: crypto.randomUUID(),
@@ -33,7 +32,7 @@ const PlanillaHoras: React.FC = () => {
   };
 
   const removeTimeRange = (dayIndex: number, rangeId: string) => {
-    setSchedule((prev) => {
+    setLocalSchedule((prev) => {
       const newSchedule = [...prev];
       newSchedule[dayIndex].timeRanges = newSchedule[dayIndex].timeRanges.filter(
         (range) => range.id !== rangeId
@@ -43,7 +42,7 @@ const PlanillaHoras: React.FC = () => {
   };
 
   const updateTimeRange = (dayIndex: number, rangeId: string, field: "start" | "end", value: string) => {
-    setSchedule((prev) => {
+    setLocalSchedule((prev) => {
       const newSchedule = [...prev];
       const rangeIndex = newSchedule[dayIndex].timeRanges.findIndex((range) => range.id === rangeId);
       if (rangeIndex !== -1) {
@@ -54,7 +53,7 @@ const PlanillaHoras: React.FC = () => {
   };
 
   const toggleWorkDay = (dayIndex: number) => {
-    setSchedule((prev) => {
+    setLocalSchedule((prev) => {
       const newSchedule = [...prev];
       newSchedule[dayIndex].isWorkDay = !newSchedule[dayIndex].isWorkDay;
       
@@ -70,27 +69,25 @@ const PlanillaHoras: React.FC = () => {
     });
   };
 
-  const saveSchedule = async () => {
+  const handleSaveSchedule = async () => {
     try {
-      // First, clear any existing schedule
-      const scheduleCollection = collection(db, "schedule");
-      const snapshot = await getDocs(scheduleCollection);
+      setIsSaving(true);
+      // Update the global schedule state
+      setSchedule(schedule);
       
-      // Delete all existing documents
-      const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
-      await Promise.all(deletePromises);
+      // Save to Firestore using our hook
+      const result = await saveSchedule();
       
-      // Add new schedule documents
-      const savePromises = schedule.map(async (day) => {
-        await addDoc(scheduleCollection, day);
-      });
-      
-      await Promise.all(savePromises);
-      
-      toast.success("Horario guardado correctamente");
+      if (result.success) {
+        toast.success(result.message);
+      } else {
+        toast.error(result.message);
+      }
     } catch (error) {
       console.error("Error al guardar horario:", error);
       toast.error("Error al guardar el horario");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -172,8 +169,12 @@ const PlanillaHoras: React.FC = () => {
         ))}
         
         <div className="flex justify-end mt-4">
-          <Button onClick={saveSchedule} className="bg-blue-600 hover:bg-blue-700">
-            Guardar Horarios
+          <Button 
+            onClick={handleSaveSchedule} 
+            className="bg-blue-600 hover:bg-blue-700"
+            disabled={isSaving}
+          >
+            {isSaving ? 'Guardando...' : 'Guardar Horarios'}
           </Button>
         </div>
       </div>
