@@ -1,41 +1,24 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-
-type TimeRange = {
-  id: string;
-  start: string;
-  end: string;
-};
-
-type DaySchedule = {
-  dayName: string;
-  isWorkDay: boolean;
-  timeRanges: TimeRange[];
-};
+import { db } from "@/lib/firebase";
+import { collection, addDoc, getDocs, doc, setDoc, deleteDoc } from "firebase/firestore";
+import { useSchedule, DaySchedule } from "@/hooks/useSchedule";
 
 const PlanillaHoras: React.FC = () => {
-  const daysOfWeek = [
-    "Lunes",
-    "Martes",
-    "Miércoles",
-    "Jueves",
-    "Viernes",
-    "Sábado",
-    "Domingo",
-  ];
-
-  const [schedule, setSchedule] = useState<DaySchedule[]>(
-    daysOfWeek.map((day) => ({
-      dayName: day,
-      isWorkDay: day !== "Domingo",
-      timeRanges: day !== "Domingo" ? [{ id: crypto.randomUUID(), start: "09:00", end: "17:00" }] : [],
-    }))
-  );
+  const { schedule: initialSchedule, loading } = useSchedule();
+  const [schedule, setSchedule] = useState<DaySchedule[]>([]);
+  
+  // When the initial schedule loads from our hook, set it to local state
+  useEffect(() => {
+    if (initialSchedule.length > 0) {
+      setSchedule(initialSchedule);
+    }
+  }, [initialSchedule]);
 
   const addTimeRange = (dayIndex: number) => {
     setSchedule((prev) => {
@@ -87,11 +70,33 @@ const PlanillaHoras: React.FC = () => {
     });
   };
 
-  const saveSchedule = () => {
-    // Aquí se implementaría la lógica para guardar en una base de datos
-    console.log("Guardando horario:", schedule);
-    toast.success("Horario guardado correctamente");
+  const saveSchedule = async () => {
+    try {
+      // First, clear any existing schedule
+      const scheduleCollection = collection(db, "schedule");
+      const snapshot = await getDocs(scheduleCollection);
+      
+      // Delete all existing documents
+      const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(deletePromises);
+      
+      // Add new schedule documents
+      const savePromises = schedule.map(async (day) => {
+        await addDoc(scheduleCollection, day);
+      });
+      
+      await Promise.all(savePromises);
+      
+      toast.success("Horario guardado correctamente");
+    } catch (error) {
+      console.error("Error al guardar horario:", error);
+      toast.error("Error al guardar el horario");
+    }
   };
+
+  if (loading) {
+    return <div className="p-6 text-center">Cargando horarios...</div>;
+  }
 
   return (
     <div className="space-y-6">
