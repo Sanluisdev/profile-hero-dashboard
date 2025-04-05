@@ -13,7 +13,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Permitir acceso completo a usuarios autenticados que sean administradores
     match /schedule/{document=**} {
-      allow read: allow read;
+      allow read: if true;
       allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
     
@@ -46,6 +46,23 @@ Este error ocurre cuando:
 1. El usuario no está autenticado
 2. El usuario no tiene los permisos necesarios según las reglas de seguridad
 3. Las reglas de seguridad están mal configuradas
+
+### Error: "Unexpected 'allow'"
+
+Este error ocurre cuando hay un problema de sintaxis en las reglas de seguridad. En particular:
+- Cuando se utiliza "allow read: allow read;" en lugar de solo "allow read;"
+- Cuando hay una coma faltante o una estructura incorrecta
+
+### Corrección del error de sintaxis
+
+El error que estás viendo en la consola de Firebase ("No se pudieron guardar las reglas: Line 6: Unexpected 'allow'") se debe a que la línea:
+```
+allow read: allow read;
+```
+debería ser simplemente:
+```
+allow read: if true;
+```
 
 ### Verificación de permisos de administrador
 
