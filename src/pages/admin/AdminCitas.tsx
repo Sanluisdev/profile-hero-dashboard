@@ -143,12 +143,12 @@ const AdminCitas: React.FC = () => {
             className="max-w-[200px]"
           />
           
-          <div className="flex-1">
+          <div className="flex-1 relative">
             <Input 
               placeholder="Search for Customers, Services..." 
-              className="w-full"
-              icon={<Search className="h-4 w-4" />}
+              className="w-full pl-9"
             />
+            <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
           </div>
           
           <div className="flex gap-3">
