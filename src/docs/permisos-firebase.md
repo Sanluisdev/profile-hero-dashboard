@@ -1,4 +1,5 @@
 
+
 # Permisos de Firebase
 
 Este archivo documenta las reglas de seguridad y permisos necesarios para el correcto funcionamiento de la aplicación.
@@ -64,6 +65,37 @@ debería ser simplemente:
 allow read: if true;
 ```
 
+### Error: "net::ERR_BLOCKED_BY_CLIENT"
+
+Este error indica que las peticiones a Firebase están siendo bloqueadas por el cliente. Posibles causas:
+
+1. **Extensiones del navegador**: Extensiones como AdBlocker, Privacy Badger, uBlock Origin pueden estar bloqueando peticiones a los servidores de Firebase.
+   - **Solución**: Deshabilita temporalmente estas extensiones o agrega una excepción para tu dominio.
+
+2. **VPN o firewall**: Si estás utilizando una VPN o firewall, podrían estar bloqueando las comunicaciones con Firebase.
+   - **Solución**: Desactiva temporalmente la VPN o configura excepciones en el firewall.
+
+3. **Políticas de red corporativas**: Si estás en una red empresarial, pueden tener políticas que bloquean servicios en la nube.
+   - **Solución**: Consulta con el administrador de la red.
+
+### Verificación de estado del administrador
+
+Si has confirmado que el usuario actual tiene el flag `isAdmin: true` pero aún recibes el error de permisos, asegúrate de que:
+
+1. El documento del usuario existe en la colección `users` de Firestore
+2. El campo `isAdmin` está correctamente establecido como `true` (no como string "true")
+3. La ruta al documento es exactamente `/users/{uid}` donde `{uid}` es el ID del usuario autenticado
+
+Para verificar, puedes añadir este código temporal para depurar:
+
+```javascript
+const userId = auth.currentUser?.uid;
+if (userId) {
+  const userDoc = await getDoc(doc(db, "users", userId));
+  console.log("Datos del usuario:", userDoc.exists() ? userDoc.data() : "No existe");
+}
+```
+
 ### Verificación de permisos de administrador
 
 Para verificar si un usuario tiene permisos de administrador:
@@ -74,3 +106,4 @@ Para verificar si un usuario tiene permisos de administrador:
 ## Notas importantes
 
 Cualquier cambio en la estructura de datos o en las necesidades de acceso debe ser reflejado en este documento y en las reglas de seguridad de Firebase.
+
