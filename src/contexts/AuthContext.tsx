@@ -11,10 +11,12 @@ import {
   googleProvider, 
   saveUserToFirestore,
   signInWithEmailAndSave,
-  createUserWithEmailAndPasswordAndSave 
+  createUserWithEmailAndPasswordAndSave,
+  db
 } from "@/lib/firebase";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 interface AuthContextType {
   currentUser: User | null;
@@ -48,23 +50,81 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return ADMIN_EMAILS.includes(email);
   };
 
+  // Verificar en Firestore si el usuario es administrador
+  const checkAdminInFirestore = async (user: User | null) => {
+    if (!user) return false;
+    
+    try {
+      const userDocRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        console.log("Datos del usuario desde Firestore:", userData);
+        return userData?.isAdmin === true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Error al verificar admin en Firestore:", error);
+      return false;
+    }
+  };
+
+  // Asegurar que el usuario administrador tenga el campo isAdmin
+  const ensureAdminFlag = async (user: User) => {
+    if (!user || !ADMIN_EMAILS.includes(user.email || "")) return;
+
+    try {
+      console.log("Verificando/configurando flag isAdmin para:", user.email);
+      const userDocRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+      
+      // Si el documento existe pero no tiene isAdmin=true, añadirlo
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        if (userData?.isAdmin !== true) {
+          console.log("Actualizando flag isAdmin para el usuario admin");
+          await setDoc(userDocRef, { isAdmin: true }, { merge: true });
+        }
+      } else {
+        // Si el documento no existe, crearlo con isAdmin=true
+        await setDoc(userDocRef, { 
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName || "Administrador",
+          isAdmin: true,
+          createdAt: new Date()
+        });
+        console.log("Documento de admin creado con flag isAdmin");
+      }
+    } catch (error) {
+      console.error("Error al asegurar flag isAdmin:", error);
+    }
+  };
+
   useEffect(() => {
     console.log("Setting up auth state listener");
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       console.log("AuthState changed - Usuario actual:", user?.email);
       
       if (user) {
+        // Si es correo de administrador, asegurar que tenga el flag isAdmin
+        if (ADMIN_EMAILS.includes(user.email || "")) {
+          await ensureAdminFlag(user);
+        }
+        
         // Guarda información del usuario en Firestore en cada inicio de sesión
         await saveUserToFirestore(user);
+        
+        // Verificar estado de administrador en Firestore
+        const adminStatus = await checkAdminInFirestore(user);
+        console.log("¿Es administrador según Firestore?", adminStatus);
+        setIsAdmin(adminStatus);
+      } else {
+        setIsAdmin(false);
       }
       
       setCurrentUser(user);
-      
-      // Determinar si el usuario es administrador por su correo
-      const adminStatus = checkIsAdmin(user?.email);
-      console.log("¿Es administrador?", adminStatus);
-      setIsAdmin(adminStatus);
-      
       setLoading(false);
     });
 
@@ -127,6 +187,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const result = await signInWithPopup(auth, googleProvider);
       
+      // Verificar si es correo de administrador y asegurar flag isAdmin
+      if (ADMIN_EMAILS.includes(result.user.email || "")) {
+        await ensureAdminFlag(result.user);
+      }
+      
       // Guardar información del usuario en Firestore
       await saveUserToFirestore(result.user);
       
@@ -135,10 +200,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: `Bienvenido, ${result.user.displayName}!`,
       });
       
+      // Verificar estado de administrador en Firestore
+      const adminStatus = await checkAdminInFirestore(result.user);
+      setIsAdmin(adminStatus);
+      
       // Comprobar si es administrador
-      if (checkIsAdmin(result.user.email)) {
+      if (adminStatus) {
         console.log("Usuario de Google es administrador");
-        setIsAdmin(true);
         navigate("/admin");
       } else {
         navigate("/dashboard");
@@ -175,12 +243,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Si no es administrador o falló la autenticación manual, intentamos con Firebase
       try {
         const result = await signInWithEmailAndSave(email, password);
+        
+        // Si es admin, asegurar que tenga el flag
+        if (ADMIN_EMAILS.includes(result.user.email || "")) {
+          await ensureAdminFlag(result.user);
+        }
+        
+        // Verificar estado de administrador en Firestore
+        const adminStatus = await checkAdminInFirestore(result.user);
+        setIsAdmin(adminStatus);
+        
         toast({
           title: "Inicio de sesión exitoso",
           description: `Bienvenido, ${result.user.email}!`,
         });
         
-        if (checkIsAdmin(result.user.email)) {
+        if (adminStatus) {
           navigate("/admin");
         } else {
           navigate("/dashboard");
@@ -225,6 +303,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string) => {
     try {
       const result = await createUserWithEmailAndPasswordAndSave(email, password);
+      
+      // Si es admin, asegurar que tenga el flag
+      if (ADMIN_EMAILS.includes(email)) {
+        await ensureAdminFlag(result.user);
+      }
       
       toast({
         title: "Registro exitoso",

@@ -1,32 +1,33 @@
 
-
 # Permisos de Firebase
 
 Este archivo documenta las reglas de seguridad y permisos necesarios para el correcto funcionamiento de la aplicación.
 
 ## Reglas de Firestore
 
-Para resolver el error "Missing or insufficient permissions" en la colección "schedule", debes configurar las siguientes reglas en la consola de Firebase:
+Para resolver el error "Missing or insufficient permissions" en las colecciones, debes configurar las siguientes reglas en la consola de Firebase:
 
 ```
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Permitir acceso completo a usuarios autenticados que sean administradores
+    // Permitir acceso a la colección 'users' por usuario autenticado o administrador
+    match /users/{userId} {
+      allow read: if request.auth != null && (request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
+      allow write: if request.auth != null && (request.auth.uid == userId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
+    }
+    
+    // Permitir acceso a la colección 'schedule' por cualquiera para lectura, solo admin para escritura
     match /schedule/{document} {
       allow read: if true;
-      allow write: if request.auth != null && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+      allow write: if request.auth != null && request.auth.uid == "KTZux14pVHQ9sv202AUChoLuR0F2";
     }
     
-    // Reglas para la colección de usuarios
-    match /users/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow write: if request.auth != null && request.auth.uid == userId;
+    // Reglas para futuras colecciones
+    match /{collection}/{document=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
-    
-    // Reglas para otras colecciones
-    // ...
   }
 }
 ```
@@ -55,17 +56,6 @@ Este error ocurre cuando hay un problema de sintaxis en las reglas de seguridad.
 - Cuando se utiliza "allow read: allow read;" en lugar de solo "allow read;"
 - Cuando hay una coma faltante o una estructura incorrecta
 
-### Corrección del error de sintaxis
-
-El error que estás viendo en la consola de Firebase ("No se pudieron guardar las reglas: Line 6: Unexpected 'allow'") se debe a que la línea:
-```
-allow read: allow read;
-```
-debería ser simplemente:
-```
-allow read: if true;
-```
-
 ### Error: "net::ERR_BLOCKED_BY_CLIENT"
 
 Este error indica que las peticiones a Firebase están siendo bloqueadas por el cliente. Posibles causas:
@@ -79,32 +69,23 @@ Este error indica que las peticiones a Firebase están siendo bloqueadas por el 
 3. **Políticas de red corporativas**: Si estás en una red empresarial, pueden tener políticas que bloquean servicios en la nube.
    - **Solución**: Consulta con el administrador de la red.
 
-### Verificación de estado del administrador
+### Solución específica para el usuario administrador
 
-Si has confirmado que el usuario actual tiene el flag `isAdmin: true` pero aún recibes el error de permisos, asegúrate de que:
+Para el usuario administrador con ID `KTZux14pVHQ9sv202AUChoLuR0F2` (jmesparre@gmail.com), es necesario agregar manualmente el campo `isAdmin: true` en su documento de Firestore.
 
-1. El documento del usuario existe en la colección `users` de Firestore
-2. El campo `isAdmin` está correctamente establecido como `true` (no como string "true")
-3. La ruta al documento es exactamente `/users/{uid}` donde `{uid}` es el ID del usuario autenticado
+Pasos para agregar el campo isAdmin:
+1. Ve a la [consola de Firebase](https://console.firebase.google.com/)
+2. Selecciona tu proyecto y ve a "Firestore Database"
+3. Navega a la colección "users"
+4. Localiza el documento con ID "KTZux14pVHQ9sv202AUChoLuR0F2"
+5. Haz clic en "Editar" y agrega un nuevo campo:
+   - Campo: `isAdmin`
+   - Tipo: boolean
+   - Valor: `true`
+6. Guarda los cambios
 
-Para verificar, puedes añadir este código temporal para depurar:
-
-```javascript
-const userId = auth.currentUser?.uid;
-if (userId) {
-  const userDoc = await getDoc(doc(db, "users", userId));
-  console.log("Datos del usuario:", userDoc.exists() ? userDoc.data() : "No existe");
-}
-```
-
-### Verificación de permisos de administrador
-
-Para verificar si un usuario tiene permisos de administrador:
-
-1. Asegúrate de que el documento del usuario en la colección "users" tenga un campo "isAdmin" configurado como true
-2. Verifica que el usuario esté correctamente autenticado antes de intentar acceder a recursos protegidos
+También se ha añadido una regla específica para el usuario con ID "KTZux14pVHQ9sv202AUChoLuR0F2" para permitirle escribir en la colección "schedule" incluso si hay problemas con la verificación de isAdmin.
 
 ## Notas importantes
 
 Cualquier cambio en la estructura de datos o en las necesidades de acceso debe ser reflejado en este documento y en las reglas de seguridad de Firebase.
-

@@ -1,6 +1,7 @@
+
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { getFirestore, connectFirestoreEmulator, collection, doc, setDoc, serverTimestamp, FieldValue } from "firebase/firestore";
+import { getFirestore, connectFirestoreEmulator, collection, doc, setDoc, serverTimestamp, FieldValue, getDoc } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 
 // Configuración de Firebase
@@ -22,6 +23,9 @@ const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
 const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
+
+// Lista de correos de administradores
+const ADMIN_EMAILS = ["jmesparre@gmail.com"];
 
 // Comprueba si la URL es una URL de desarrollo local
 const isLocalhost = 
@@ -50,6 +54,10 @@ const saveUserToFirestore = async (user) => {
     // Ruta al documento del usuario utilizando su UID como ID del documento
     const userRef = doc(db, "users", user.uid);
     
+    // Comprobar si ya existe el documento
+    const userSnapshot = await getDoc(userRef);
+    const isAdmin = ADMIN_EMAILS.includes(user.email || "");
+    
     // Datos base que guardaremos/actualizaremos
     const userData: {
       uid: any;
@@ -58,6 +66,7 @@ const saveUserToFirestore = async (user) => {
       photoURL: any;
       lastLogin: FieldValue;
       provider: any;
+      isAdmin: boolean;
       createdAt?: FieldValue;
     } = {
       uid: user.uid,
@@ -65,19 +74,29 @@ const saveUserToFirestore = async (user) => {
       displayName: user.displayName || null,
       photoURL: user.photoURL || null,
       lastLogin: serverTimestamp(),
-      provider: user.providerData[0]?.providerId || "unknown"
+      provider: user.providerData[0]?.providerId || "unknown",
+      isAdmin: isAdmin // Automáticamente establecer isAdmin basado en el email
     };
 
     // Si es un registro nuevo, añadir fecha de creación
-    if (!user.metadata?.lastSignInTime) {
+    if (!userSnapshot.exists()) {
       userData.createdAt = serverTimestamp();
+      console.log(`Creando nuevo usuario ${user.email}, isAdmin: ${isAdmin}`);
+    } else {
+      console.log(`Actualizando usuario ${user.email}, isAdmin: ${isAdmin}`);
     }
     
     // Guardar en Firestore (actualiza si existe, crea si no)
     await setDoc(userRef, userData, { merge: true });
     console.log("Usuario guardado en Firestore:", user.uid);
+    
+    // Log adicional para depuración
+    console.log(`Documento de usuario después de guardar:`, userData);
+    
+    return userData;
   } catch (error) {
     console.error("Error al guardar usuario en Firestore:", error);
+    throw error;
   }
 };
 
