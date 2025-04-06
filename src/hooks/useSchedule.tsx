@@ -1,6 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, doc, setDoc, deleteDoc } from "firebase/firestore";
+import { collection, getDocs, doc, setDoc, deleteDoc, getDoc } from "firebase/firestore";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Types for our schedule
 export type TimeRange = {
@@ -19,19 +21,32 @@ export function useSchedule() {
   const [schedule, setSchedule] = useState<DaySchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { currentUser } = useAuth();
 
   useEffect(() => {
     const fetchSchedule = async () => {
       try {
         setLoading(true);
+        console.log("Obteniendo horarios desde Firestore...");
+        
         // Try to get the schedule from Firestore first
         const scheduleCollection = collection(db, "schedule");
         const snapshot = await getDocs(scheduleCollection);
         
         if (!snapshot.empty) {
-          const scheduleData = snapshot.docs.map(doc => doc.data() as DaySchedule);
+          // Ordenar los documentos por su ID (asumiendo que tienen formato day-0, day-1, etc.)
+          const scheduleData = snapshot.docs
+            .sort((a, b) => {
+              const aIndex = parseInt(a.id.split('-')[1]);
+              const bIndex = parseInt(b.id.split('-')[1]);
+              return aIndex - bIndex;
+            })
+            .map(doc => doc.data() as DaySchedule);
+          
+          console.log("Horarios recuperados:", scheduleData.length);
           setSchedule(scheduleData);
         } else {
+          console.log("No se encontraron horarios, usando valores predeterminados");
           // If no data in Firestore, use default schedule
           const defaultSchedule = getDefaultSchedule();
           setSchedule(defaultSchedule);
@@ -118,9 +133,57 @@ export function useSchedule() {
     return schedule[adjustedDayIndex]?.isWorkDay || false;
   };
 
+  // Verificar permisos de administrador
+  const verifyAdminStatus = async () => {
+    if (!currentUser) {
+      return { isAdmin: false, message: "No hay usuario autenticado" };
+    }
+    
+    try {
+      console.log("Verificando permisos de administrador para:", currentUser.uid);
+      const userDocRef = doc(db, "users", currentUser.uid);
+      const userDoc = await getDoc(userDocRef);
+      
+      if (!userDoc.exists()) {
+        console.error("El documento del usuario no existe en Firestore");
+        return { isAdmin: false, message: "El usuario no existe en la base de datos" };
+      }
+      
+      const userData = userDoc.data();
+      console.log("Datos del usuario:", userData);
+      
+      if (userData?.isAdmin !== true) {
+        return { 
+          isAdmin: false, 
+          message: "El usuario no tiene permisos de administrador" 
+        };
+      }
+      
+      return { isAdmin: true, message: "Usuario con permisos de administrador" };
+    } catch (error) {
+      console.error("Error al verificar permisos de administrador:", error);
+      return { 
+        isAdmin: false, 
+        message: "Error al verificar permisos de administrador" 
+      };
+    }
+  };
+
   // Save schedule to firestore
   const saveSchedule = async () => {
     try {
+      // Primero verificamos que el usuario sea administrador
+      const adminStatus = await verifyAdminStatus();
+      if (!adminStatus.isAdmin) {
+        console.error("Error de permisos:", adminStatus.message);
+        return { 
+          success: false, 
+          message: `Error de permisos: ${adminStatus.message}` 
+        };
+      }
+      
+      console.log("Guardando horarios en Firestore...");
+      
       // First, clear any existing schedule
       const scheduleCollection = collection(db, "schedule");
       const snapshot = await getDocs(scheduleCollection);
@@ -132,15 +195,21 @@ export function useSchedule() {
       // Add new schedule documents
       const savePromises = schedule.map(async (day, index) => {
         // Use ordinal index as document ID to preserve order
-        await setDoc(doc(db, "schedule", `day-${index}`), day);
+        const docRef = doc(db, "schedule", `day-${index}`);
+        await setDoc(docRef, day);
+        console.log(`Guardado día ${index}: ${day.dayName}`);
       });
       
       await Promise.all(savePromises);
+      console.log("Todos los horarios guardados correctamente");
       
       return { success: true, message: "Horario guardado correctamente" };
     } catch (error) {
       console.error("Error al guardar horario:", error);
-      return { success: false, message: "Error al guardar el horario. Verifica los permisos." };
+      return { 
+        success: false, 
+        message: "Error al guardar el horario. Verifica los permisos y la conexión." 
+      };
     }
   };
 
@@ -151,6 +220,7 @@ export function useSchedule() {
     error,
     getAvailableTimesForDate,
     isWorkDay,
-    saveSchedule
+    saveSchedule,
+    verifyAdminStatus
   };
 }

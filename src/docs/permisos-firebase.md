@@ -13,9 +13,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // Permitir acceso completo a usuarios autenticados que sean administradores
-    match /schedule/{document=**} {
+    match /schedule/{document} {
       allow read: if true;
-      allow write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+      allow write: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
     
     // Reglas para la colección de usuarios

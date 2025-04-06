@@ -3,14 +3,40 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Info, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useSchedule, DaySchedule } from "@/hooks/useSchedule";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useAuth } from "@/contexts/AuthContext";
 
 const PlanillaHoras: React.FC = () => {
-  const { schedule: initialSchedule, loading, setSchedule, saveSchedule } = useSchedule();
+  const { currentUser } = useAuth();
+  const { 
+    schedule: initialSchedule, 
+    loading, 
+    error: scheduleError, 
+    setSchedule, 
+    saveSchedule,
+    verifyAdminStatus 
+  } = useSchedule();
+  
   const [schedule, setLocalSchedule] = useState<DaySchedule[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [adminVerified, setAdminVerified] = useState(false);
+  const [adminStatus, setAdminStatus] = useState<{isAdmin: boolean, message: string} | null>(null);
+  
+  // Verificar permisos de administrador al cargar
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (currentUser) {
+        const status = await verifyAdminStatus();
+        setAdminStatus(status);
+        setAdminVerified(true);
+      }
+    };
+    
+    checkAdminStatus();
+  }, [currentUser, verifyAdminStatus]);
   
   // When the initial schedule loads from our hook, set it to local state
   useEffect(() => {
@@ -75,6 +101,14 @@ const PlanillaHoras: React.FC = () => {
       // Update the global schedule state
       setSchedule(schedule);
       
+      // Verificamos nuevamente el estado de administrador
+      const adminCheck = await verifyAdminStatus();
+      if (!adminCheck.isAdmin) {
+        toast.error(`Error de permisos: ${adminCheck.message}`);
+        setAdminStatus(adminCheck);
+        return;
+      }
+      
       // Save to Firestore using our hook
       const result = await saveSchedule();
       
@@ -85,7 +119,7 @@ const PlanillaHoras: React.FC = () => {
       }
     } catch (error) {
       console.error("Error al guardar horario:", error);
-      toast.error("Error al guardar el horario");
+      toast.error("Error al guardar el horario: " + (error instanceof Error ? error.message : "Desconocido"));
     } finally {
       setIsSaving(false);
     }
@@ -101,6 +135,24 @@ const PlanillaHoras: React.FC = () => {
         <h1 className="text-2xl font-bold text-gray-800">Planilla de Horas</h1>
         <p className="text-gray-600">Configure la disponibilidad semanal</p>
       </div>
+      
+      {/* Mostrar estado de administrador */}
+      {adminVerified && adminStatus && (
+        <Alert variant={adminStatus.isAdmin ? "default" : "destructive"} className="mb-4">
+          <Info className="h-4 w-4" />
+          <AlertTitle>Estado de permisos</AlertTitle>
+          <AlertDescription>{adminStatus.message}</AlertDescription>
+        </Alert>
+      )}
+      
+      {/* Mostrar error de carga de horarios */}
+      {scheduleError && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{scheduleError}</AlertDescription>
+        </Alert>
+      )}
       
       <div className="grid gap-6">
         {schedule.map((day, dayIndex) => (
@@ -172,7 +224,7 @@ const PlanillaHoras: React.FC = () => {
           <Button 
             onClick={handleSaveSchedule} 
             className="bg-blue-600 hover:bg-blue-700"
-            disabled={isSaving}
+            disabled={isSaving || (adminStatus && !adminStatus.isAdmin)}
           >
             {isSaving ? 'Guardando...' : 'Guardar Horarios'}
           </Button>
